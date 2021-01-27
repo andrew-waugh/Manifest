@@ -31,43 +31,38 @@ package Manifest;
 
 import VERSCommon.AppFatal;
 import VERSCommon.AppError;
+import VERSCommon.HandleElement;
+import VERSCommon.VERSDate;
+import VERSCommon.XMLConsumer;
+import VERSCommon.XMLCreator;
+import VERSCommon.XMLParser;
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.DatatypeConverter;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
 
-public class Manifest {
+public class Manifest implements XMLConsumer {
 
     static String classname = "Manifest"; // for reporting
-    ArrayList<String> files;// files or directories to hash
+    Job job;                // job description
     Runtime r;
 
-    Path manifestFile;      // file containing manifest
-    String hashAlg;         // hash algorithm to use
     int fileCount;          // number of files processed
-    boolean debug;          // true if in debug mode
-    boolean verbose;        // true if in verbose output mode
-    boolean createManifest; // true if we are creating the manifest file
     String userId;          // user performing the conversion
     FXMLProgressController.DoManifestTask reporter; // call back for reporting
+    XMLParser xmlp;         // parser for XML manifest
 
     private final static Logger LOG = Logger.getLogger("Manifest.Manifest");
 
@@ -84,18 +79,13 @@ public class Manifest {
         LOG.setLevel(Level.INFO);
 
         // set up default global variables
-        files = new ArrayList<>();
-
-        manifestFile = Paths.get(".");
-        hashAlg = "SHA-1";
+        job = new Job();
         fileCount = 0;
-        debug = false;
-        verbose = false;
-        createManifest = true;
         userId = System.getProperty("user.name");
         if (userId == null) {
             userId = "Unknown user";
         }
+        // xmlp = new XMLParser(this);
         reporter = null;
         r = Runtime.getRuntime();
 
@@ -104,15 +94,15 @@ public class Manifest {
     }
 
     /**
-     * Constructor used when called by a program (typically a GUI).
-     * The parameters of the execution are passed in as a 'job'; the logging is
+     * Constructor used when called by a program (typically a GUI). The
+     * parameters of the execution are passed in as a 'job'; the logging is
      * written out to 'hdlr', and after every step the callback 'reporter' is
      * called so that the governing program can update any status.
-     * 
+     *
      * @param job parameters for the execution (replaces the command line)
      * @param hdlr place where log messages go
      * @param reporter callback to update status in the calling program
-     * @throws AppFatal 
+     * @throws AppFatal
      */
     public Manifest(Job job, Handler hdlr, FXMLProgressController.DoManifestTask reporter) throws AppFatal {
         Handler h[];
@@ -132,16 +122,8 @@ public class Manifest {
         LOG.setLevel(Level.SEVERE);
 
         // set up global variables from job
-        files = new ArrayList();
-        for (i = 0; i < job.directories.size(); i++) {
-            files.add(job.directories.get(i));
-        }
-        manifestFile = job.manifest;
-        hashAlg = job.hashAlg;
+        this.job = job;
         fileCount = 0;
-        debug = job.debug;
-        verbose = job.verbose;
-        createManifest = true; // ignored when calling from a program
 
         // set up callback
         this.reporter = reporter;
@@ -166,9 +148,9 @@ public class Manifest {
      */
     private void configure(String args[]) throws AppFatal {
         int i;
-        String usage = "Manifest [-v] [-d] [-o <file>] [-g] [-i <file>] [-h <hashAlg>] (files|directories)*";
+        String usage = "Manifest [-v] [-d] [-o <file>] [-g] [-i <file>] [-h <hashAlg>] directory";
 
-        // hashFile command line arguments
+        // hashFiles command line arguments
         i = 0;
         try {
             while (i < args.length) {
@@ -176,7 +158,7 @@ public class Manifest {
 
                     // verbose?
                     case "-v":
-                        verbose = true;
+                        job.verbose = true;
                         LOG.setLevel(Level.INFO);
                         // rootLog.setLevel(Level.INFO);
                         i++;
@@ -184,32 +166,32 @@ public class Manifest {
 
                     // debug?
                     case "-d":
-                        debug = true;
+                        job.debug = true;
                         LOG.setLevel(Level.FINE);
                         // rootLog.setLevel(Level.FINE);
                         i++;
                         break;
 
-                    // '-o' specifies input manifest file
+                    // '-i' specifies input manifest file
                     case "-i":
                         i++;
-                        manifestFile = Paths.get(args[i]);
-                        createManifest = false;
+                        job.manifest = Paths.get(args[i]);
+                        job.task = Job.Task.VERIFY;
                         i++;
                         break;
 
                     // get hash algorithm
                     case "-h":
                         i++;
-                        hashAlg = args[i];
+                        job.hashAlg = args[i];
                         i++;
                         break;
 
                     // '-i' specifies output manifest file
                     case "-o":
                         i++;
-                        manifestFile = Paths.get(args[i]);
-                        createManifest = true;
+                        job.manifest = Paths.get(args[i]);
+                        job.task = Job.Task.CREATE;
                         i++;
                         break;
 
@@ -220,7 +202,10 @@ public class Manifest {
                         }
 
                         // if doesn't start with '-' assume a file or directory name
-                        files.add(args[i]);
+                        if (job.directory != null) {
+                            throw new AppFatal("Only one directory can be present '" + args[i] + "' Usage: " + usage);
+                        }
+                        job.directory = Paths.get(args[i]);
                         i++;
                         break;
                 }
@@ -230,22 +215,22 @@ public class Manifest {
         }
 
         // check to see if at least one file or directory is specified
-        if (files.isEmpty()) {
-            throw new AppFatal("You must specify at least one file or directory to process");
+        if (job.directory == null) {
+            throw new AppFatal("You must a directory to process");
         }
-        if (manifestFile == null) {
+        if (job.manifest == null) {
             throw new AppFatal("You must specify a manifest file as an input (checking) or output (creating)");
         }
 
         // LOG generic things
-        if (debug) {
+        if (job.debug) {
             LOG.log(Level.INFO, "Verbose/Debug mode is selected");
-        } else if (verbose) {
+        } else if (job.verbose) {
             LOG.log(Level.INFO, "Verbose output is selected");
         }
-        LOG.log(Level.INFO, "Hash algorithm is ''{0}''", hashAlg);
+        LOG.log(Level.INFO, "Hash algorithm is ''{0}''", job.hashAlg);
         LOG.log(Level.INFO, "User id to be logged: ''{0}''", new Object[]{userId});
-        LOG.log(Level.INFO, "Creating a manifest? {0}", createManifest);
+        LOG.log(Level.INFO, "Creating a manifest? {0}", job.task);
     }
 
     /**
@@ -285,121 +270,82 @@ public class Manifest {
     }
 
     /**
-     * Create a manifest
+     * Create a manifest - an XML file.
+     *
+     * @throws VERSCommon.AppFatal
      */
-    public void createManifest() throws AppFatal {
-        int i;
-        String file;
-        FileWriter fw;
-        BufferedWriter bw;
+    public void createManifest() throws AppFatal, AppError {
+        XMLCreator xmlc;
 
-        // open manifest
-        try {
-            fw = new FileWriter(manifestFile.toFile());
-        } catch (IOException ioe) {
-            System.out.println(manifestFile.toAbsolutePath().toString());
-            throw new AppFatal(classname, 1, "Cannot open manifest file '" + manifestFile.toString() + "' for writing:" + ioe.getMessage());
-        }
-        bw = new BufferedWriter(fw);
-
-        // go through the list of files
-        for (i = 0; i < files.size(); i++) {
-            file = files.get(i);
-            if (file == null) {
-                continue;
-            }
-            try {
-                hashFile(Paths.get(file), bw);
-            } catch (InvalidPathException ipe) {
-                LOG.log(Level.WARNING, "***Ignoring file ''{0}'' as the file name was invalid: {1}", new Object[]{file, ipe.getMessage()});
-            }
-        }
-
-        try {
-            bw.close();
-            fw.close();
-        } catch (IOException ioe) {
-            // ignore
-        }
-    }
-
-    public boolean process(Path file) {
-        StringWriter sw;
-
-        System.out.println("Starting" + file.toString());
-        sw = new StringWriter();
-        try {
-            hashFile(file, sw);
-        } catch (InvalidPathException ipe) {
-            LOG.log(Level.WARNING, "***Ignoring file ''{0}'' as the file name was invalid: {1}", new Object[]{file, ipe.getMessage()});
-        } catch (AppFatal af) {
-            LOG.log(Level.WARNING, "***Ignoring file ''{0}'' due to a fatal error: {1}", new Object[]{file, af.getMessage()});
-        }
-        try {
-            sw.close();
-        } catch (IOException ioe) {
-            // ignore
-        }
-        return true;
+        // create manifest
+        xmlc = new XMLCreator(true);
+        xmlc.startXMLDoc(job.manifest, "Manifest", null);
+        xmlc.includeElement("creator", null, job.actor, false);
+        xmlc.includeElement("hashAlgorithm", null, job.hashAlg, false);
+        xmlc.includeElement("dateTimeCreated", null, VERSDate.versDateTime(0), false);
+        xmlc.includeElement("directory", null, job.directory.toString(), false);
+        xmlc.startElement("files", null, false);
+        hashTheFiles(job.directory, xmlc);
+        xmlc.endElement("files", false);
+        xmlc.endXMLDoc();
     }
 
     /**
      * Process an individual directory or file. If a directory, recursively
      * process all of the files (or directories) in it.
      *
-     * @param f the file or directory to hashFile
+     * @param p the file or directory to hashFiles
      * @param first this is the first entry in the directory
      */
-    private void hashFile(Path f, Writer w) throws AppFatal {
+    private void hashTheFiles(Path p, XMLCreator xmlc) throws AppFatal {
         DirectoryStream<Path> ds;
         String hash;
 
         // check that file or directory exists
-        if (!Files.exists(f)) {
-            if (verbose) {
-                LOG.log(Level.WARNING, "***File ''{0}'' does not exist", new Object[]{f.normalize().toString()});
+        if (!Files.exists(p)) {
+            if (job.verbose) {
+                LOG.log(Level.WARNING, "***File ''{0}'' does not exist", new Object[]{p.normalize().toString()});
             }
             return;
         }
 
         // if file is a directory, go through directory and test all the files
-        if (Files.isDirectory(f)) {
-            if (verbose) {
-                LOG.log(Level.INFO, "***Processing directory ''{0}''", new Object[]{f.normalize().toString()});
+        if (Files.isDirectory(p)) {
+            if (job.verbose) {
+                LOG.log(Level.INFO, "***Processing directory ''{0}''", new Object[]{p.normalize().toString()});
             }
             try {
-                ds = Files.newDirectoryStream(f);
-                for (Path p : ds) {
-                    hashFile(p, w);
+                ds = Files.newDirectoryStream(p);
+                for (Path p1 : ds) {
+                    hashTheFiles(p1, xmlc);
                 }
                 ds.close();
             } catch (IOException e) {
-                LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{f.normalize().toString(), e.getMessage()});
+                LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{p.normalize().toString(), e.getMessage()});
             }
             return;
         }
 
-        if (Files.isRegularFile(f)) {
+        if (Files.isRegularFile(p)) {
             try {
-                hash = Manifest.this.hashFile(f);
-                try {
-                    w.write(f.normalize().toString());
-                    w.write("\t");
-                    w.write(hash);
-                    w.write("\n");
-                } catch (IOException ioe) {
-                    throw new AppFatal("Failed writing manifest: " + ioe.getMessage());
-                }
-                LOG.log(Level.INFO, "Hashed ''{0}'': ''{1}''", new Object[]{f.normalize().toString(), hash});
+                hash = hashFile(p);
+                xmlc.startElement("f", null, false);
+                xmlc.includeElement("p", null, job.directory.relativize(p).toString(), true);
+                xmlc.includeElement("h", null, hash, true);
+                xmlc.endElement("f", true);
+                LOG.log(Level.INFO, "Hashed ''{0}'': ''{1}''", new Object[]{p.normalize().toString(), hash});
             } catch (AppError ae) {
-                LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{f.normalize().toString(), ae.getMessage()});
+                LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{p.normalize().toString(), ae.getMessage()});
             }
         } else {
-            LOG.log(Level.INFO, "***Ignoring directory ''{0}''", new Object[]{f.normalize().toString()});
+            LOG.log(Level.INFO, "***Ignoring directory ''{0}''", new Object[]{p.normalize().toString()});
         }
-        System.out.println("Did file: " + f.toString());
+        // System.out.println("Did file: " + p.toString());
         if (reporter != null) {
-            reporter.updateStatus(f.toString(), null);
+            if (p.getNameCount() > 3) {
+                p = p.subpath(p.getNameCount() - 3, p.getNameCount());
+            }
+            reporter.updateStatus(".../"+p.toString(), null);
         }
     }
 
@@ -407,63 +353,141 @@ public class Manifest {
      * Check a manifest
      */
     public void checkManifest() throws AppFatal, AppError {
-        int i;
-        FileReader fr;
-        BufferedReader br;
-        String line;
-        String[] tokens;
-        Path base, file;
-        String hash;
-
-        // open manifest
-        try {
-            fr = new FileReader(manifestFile.toFile());
-        } catch (IOException ioe) {
-            System.out.println(manifestFile.toAbsolutePath().toString());
-            throw new AppFatal(classname, 1, "Cannot open manifest file '" + manifestFile.toString() + "' for reading:" + ioe.getMessage());
+        // check parameters
+        if (job.manifest == null) {
+            throw new AppError("Passed null manifest to be processed");
         }
-        br = new BufferedReader(fr);
 
-        // get base directory
-        if (files.size() < 1) {
-            throw new AppFatal(classname, 2, "No base directory specified (" + files.size() + ")");
-        }
-        base = Paths.get(files.get(0));
-
-        // go through manifest
+        // parse it
+        oldDetails = new Job();
         try {
-            i = 0;
-            while ((line = br.readLine()) != null) {
-                i++;
-                tokens = line.split("\t");
-                if (tokens.length != 2) {
-                    LOG.log(Level.SEVERE, "Line {0} ''{1}'' had {2} tokens", new Object[]{i, line, tokens.length});
-                } else {
-                    file = base.getParent().resolve(tokens[0]);
-                    if (Files.exists(file)) {
-                        hash = Manifest.this.hashFile(file);
-                        if (!hash.equals(tokens[1])) {
-                            LOG.log(Level.SEVERE, "File ''{0}'' corrupt: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{file.toString(), tokens[1], hash});
-                        }
-                        LOG.log(Level.INFO, "File ''{0}'' passed: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{file.toString(), tokens[1], hash});
-                    } else {
-                        LOG.log(Level.SEVERE, "File ''{0}'' is in manifest, but is not present", new Object[]{file.toString()});
-                    }
-                    if (reporter != null) {
-                        reporter.updateStatus(file.toString(), null);
-                    }
+            xmlp = new XMLParser(this);
+            xmlp.parse(job.manifest);
+            xmlp = null;
+        } catch (AppFatal | AppError ae) {
+            System.out.println("Error! " + ae.toString());
+            throw ae;
+        }
+    }
+
+    /**
+     * SAX Events captured
+     */
+    /**
+     * Start of element
+     *
+     * This event is called when the parser finds a new element.
+     *
+     * @param eFound path of found element
+     * @param attributes any attributes associated with found element
+     * @throws SAXException
+     */
+    Job oldDetails;         // the old details read from the XML file
+    Path file;              // the current file being processed
+    String hashValue;       // the hash value of the current file
+
+    @Override
+    public HandleElement startElement(String eFound, Attributes attributes) throws SAXException {
+        HandleElement he;
+
+        // match the path to see if do we do something special?
+        he = null;
+        switch (eFound) {
+            case "Manifest/creator":         // creator of manifest
+            case "Manifest/hashAlgorithm":   // hash algorithm used
+            case "Manifest/dateTimeCreated": // date created
+            case "Manifest/directory":       // root of source directory
+            case "Manifest/files/f/p": // path name of file in manifest
+            case "Manifest/files/f/h": // hash algorithm
+                he = new HandleElement(HandleElement.VALUE_TO_STRING, false, null);
+                break;
+            case "Manifest/files/f":      // detail of each file
+                file = null;
+                hashValue = null;
+                break;
+            case "Manifest":                 // manifest
+            case "Manifest/files":           // list of files in manifest
+                break;
+            default:
+                break;
+        }
+        return he;
+    }
+
+    /**
+     * End of an element
+     *
+     * Found the end of an element.
+     *
+     * @param eFound
+     * @param value
+     * @throws org.xml.sax.SAXException
+     */
+    @Override
+    public void endElement(String eFound, String value, String element)
+            throws SAXException {
+
+        // if recording store element value in appropriate global variable
+        switch (eFound) {
+            case "Manifest/creator":    // Creator
+                oldDetails.actor = value;
+                break;
+            case "Manifest/hashAlgorithm":    // hash algorithm used
+                oldDetails.hashAlg = value;
+                break;
+            case "Manifest/dateTimeCreated":    // date time created
+                oldDetails.dateTimeCreated = value;
+                break;
+            case "Manifest/directory":    // source directory
+                oldDetails.directory = value != null?Paths.get(value):null;
+                break;
+            case "Manifest/files/f/p":    // path within source directory
+                file = value!=null?Paths.get(value):null;
+                break;
+            case "Manifest/files/f/h":    // hash value of file
+                hashValue = value;
+                break;
+            case "Manifest/files/f":
+                if (file == null || hashValue == null) {
+                    throw new SAXException("File without both file (" + file + ") and hash (" + hashValue);
                 }
-            }
-        } catch (IOException ioe) {
-            throw new AppFatal(classname, 2, "Failed reading manifest file '" + manifestFile.toString() + "':" + ioe.getMessage());
+                try {
+                    processFile(file, hashValue);
+                } catch (AppError ae) {
+                    throw new SAXException(ae.getMessage());
+                }
+                break;
+            default:
+                break;
         }
+    }
 
-        try {
-            br.close();
-            fr.close();
-        } catch (IOException ioe) {
-            // ignore
+    private boolean processFile(Path partialFile, String hash) throws AppError {
+        Path actualFile, p;
+        String recalcHash;
+        int i;
+
+        
+        actualFile = job.directory.resolve(partialFile);
+        // System.out.println("Processing... '"+job.directory.toString()+"' '" + partialFile.toString() + "' '"+actualFile.toString()+"' hash " + hash);
+        if (Files.exists(actualFile)) {
+            recalcHash = hashFile(actualFile);
+            if (!recalcHash.equals(hash)) {
+                LOG.log(Level.SEVERE, "File ''{0}'' corrupt: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
+            }
+            LOG.log(Level.INFO, "File ''{0}'' passed: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
+        } else {
+            LOG.log(Level.SEVERE, "File ''{0}'' is in manifest, but is not present", new Object[]{actualFile.toString()});
         }
+        if (reporter != null) {
+            if (actualFile.getNameCount() > 3) {
+                p = actualFile.subpath(actualFile.getNameCount() - 3, actualFile.getNameCount());
+            } else {
+                p = actualFile;
+            }
+            reporter.updateStatus(".../"+p.toString(), null);
+        }
+        return true;
     }
 
     /**
@@ -493,9 +517,9 @@ public class Manifest {
 
         // get message digest
         try {
-            md = MessageDigest.getInstance(hashAlg);
+            md = MessageDigest.getInstance(job.hashAlg);
         } catch (NoSuchAlgorithmException e) {
-            throw new AppError(classname, method, 1, "Hash algorithm '" + hashAlg + "' not supported");
+            throw new AppError(classname, method, 1, "Hash algorithm '" + job.hashAlg + "' not supported");
         }
         // open the file to digest
         try {
@@ -537,11 +561,11 @@ public class Manifest {
 
         try {
             m = new Manifest(args);
-            if (m.createManifest) {
-                m.createManifest();
-            } else {
-                m.checkManifest();
-            }
+            // if (m.createManifest) {
+            // m.createManifest();
+            // } else {
+            m.checkManifest();
+            //}
             m.close();
             // tp.stressTest(1000);
         } catch (AppFatal | AppError e) {

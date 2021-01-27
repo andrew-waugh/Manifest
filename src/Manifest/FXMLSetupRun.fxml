@@ -78,35 +78,20 @@
                                                         <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="ALWAYS" />
-                                                        <RowConstraints vgrow="ALWAYS" />
+                                                        <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="NEVER" />
                                                     </rowConstraints>
                                                     <children>
-                                                        <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Creator" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="0" />
-                                                        <TextField fx:id="createActorTF" onAction="#actorChange" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                                                        <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Identifier" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="1" />
+                                                        <Label text="Creator" GridPane.rowIndex="0" GridPane.columnIndex="0" alignment="CENTER_RIGHT" prefHeight="25.0" textAlignment="RIGHT" textFill="RED" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" />
+                                                        <TextField fx:id="createActorTF" onAction="#actorChange" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+                                                        <Label text="Identifier" GridPane.rowIndex="1" GridPane.columnIndex="0" alignment="CENTER_RIGHT" prefHeight="25.0" textAlignment="RIGHT" textFill="RED" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" />
                                                         <TextField fx:id="createIdentifierTF" onAction="#identiferChange" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                                                        <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Comment" textAlignment="RIGHT" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="2" />
+                                                        <Label text="Comment" alignment="CENTER_RIGHT" prefHeight="25.0" textAlignment="RIGHT" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="2" />
                                                         <TextArea fx:id="createCommentTA" onInputMethodTextChanged="#commentChange" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                                                        <VBox alignment="TOP_RIGHT" GridPane.columnIndex="0" GridPane.rowIndex="3">
-                                                            <children>
-                                                                <Label alignment="CENTER_RIGHT" prefHeight="17.0" text="Directories to" textAlignment="RIGHT" textFill="RED" />
-                                                                <Label text="include" textFill="RED" />
-                                                            </children>
-                                                        </VBox>
-                                                        <ScrollPane GridPane.columnIndex="1" GridPane.rowIndex="3">
-                                                            <ListView fx:id="createIncludeDirsLV" prefHeight="400.0" prefWidth="700" />
-                                                        </ScrollPane>
-                                                        <VBox spacing="5.0" GridPane.columnIndex="2" GridPane.rowIndex="3">
-                                                            <children>
-                                                                <Button fx:id="createIncludeDirsBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsBrowseB" text="Browse" />
-                                                                <Button fx:id="createIncludeDirsDeleteB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsDeleteB" text="Delete" />
-                                                            </children>
-                                                            <padding>
-                                                                <Insets left="5.0" />
-                                                            </padding>
-                                                        </VBox>
-                                                        <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" minWidth="130.0" prefHeight="25.0" text="Manifest" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.hgrow="NEVER" GridPane.rowIndex="4" />
+                                                        <Label text="Directory" alignment="CENTER_RIGHT" prefHeight="25.0" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" />
+                                                        <TextField fx:id="createDirectoryTF" onAction="#directoryChange" GridPane.columnIndex="1" GridPane.rowIndex="3" prefWidth="700"/>
+                                                        <Button fx:id="createDirBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsBrowse" text="Browse" GridPane.columnIndex="2" GridPane.rowIndex="3" />
+                                                        <Label text="Manifest" alignment="CENTER_RIGHT" contentDisplay="RIGHT" minWidth="130.0" prefHeight="25.0" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.hgrow="NEVER" GridPane.rowIndex="4" />
                                                         <TextField fx:id="createManifestTF" onAction="#manifestChange" GridPane.columnIndex="1" GridPane.rowIndex="4" />
                                                         <Button fx:id="createManifestBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#manifestBrowse" text="Browse" GridPane.columnIndex="2" GridPane.rowIndex="4" />
                                                     </children>
@@ -129,7 +114,7 @@
                                                         <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="NEVER" />
-                                                        <RowConstraints vgrow="ALWAYS" />
+                                                        <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="ALWAYS" />
                                                     </rowConstraints>
                                                     <children>
@@ -140,24 +125,9 @@
                                                         <TextField fx:id="verifyActorTF" onAction="#actorChange" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                                                         <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Identifier" textAlignment="RIGHT" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="2" />
                                                         <TextField fx:id="verifyIdentifierTF" onAction="#identiferChange" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                                                        <VBox alignment="TOP_RIGHT" GridPane.columnIndex="0" GridPane.rowIndex="3">
-                                                            <children>
-                                                                <Label alignment="CENTER_RIGHT" prefHeight="17.0" text="Directories to" textAlignment="RIGHT" textFill="RED" />
-                                                                <Label text="verify" textFill="RED" />
-                                                            </children>
-                                                        </VBox>
-                                                        <ScrollPane GridPane.columnIndex="1" GridPane.rowIndex="3">
-                                                            <ListView fx:id="verifyIncludeDirsLV" prefHeight="400.0" prefWidth="700" />
-                                                        </ScrollPane>
-                                                        <VBox spacing="5.0" GridPane.columnIndex="2" GridPane.rowIndex="3">
-                                                            <children>
-                                                                <Button fx:id="verifyIncludeDirsBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsBrowseB" text="Browse" />
-                                                                <Button fx:id="verifyIncludeDirsDeleteB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsDeleteB" text="Delete" />
-                                                            </children>
-                                                            <padding>
-                                                                <Insets left="5.0" />
-                                                            </padding>
-                                                        </VBox>
+                                                        <Label alignment="CENTER_RIGHT" prefHeight="17.0" text="Directory" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" />
+                                                        <TextField fx:id="verifyDirectoryTF" onAction="#directoryChange" GridPane.columnIndex="1" GridPane.rowIndex="3" prefWidth="700"/>
+                                                        <Button fx:id="verifyDirBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsBrowse" text="Browse" GridPane.columnIndex="2" GridPane.rowIndex="3" />
                                                         <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Comment" textAlignment="RIGHT" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="4" />
                                                         <TextArea fx:id="verifyCommentTA" onInputMethodTextChanged="#commentChange" GridPane.columnIndex="1" GridPane.rowIndex="4" />
                                                     </children>
@@ -181,7 +151,7 @@
                                                         <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="ALWAYS" />
-                                                        <RowConstraints vgrow="ALWAYS" />
+                                                        <RowConstraints vgrow="NEVER" />
                                                     </rowConstraints>
                                                     <children>
                                                         <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" minWidth="130.0" prefHeight="25.0" text="Manifest" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.hgrow="NEVER" GridPane.rowIndex="0" />
@@ -193,24 +163,9 @@
                                                         <TextField fx:id="updateIdentifierTF" onAction="#identiferChange" GridPane.columnIndex="1" GridPane.rowIndex="2" />
                                                         <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Comment" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="3" />
                                                         <TextArea fx:id="updateCommentTA" onInputMethodTextChanged="#commentChange" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                                                        <VBox alignment="TOP_RIGHT" GridPane.columnIndex="0" GridPane.rowIndex="4">
-                                                            <children>
-                                                                <Label alignment="CENTER_RIGHT" prefHeight="17.0" text="Directories to" textAlignment="RIGHT" />
-                                                                <Label text="update" />
-                                                            </children>
-                                                        </VBox>
-                                                        <ScrollPane GridPane.columnIndex="1" GridPane.rowIndex="4">
-                                                            <ListView fx:id="updateIncludeDirsLV" prefHeight="400.0" prefWidth="700" />
-                                                        </ScrollPane>
-                                                        <VBox spacing="5.0" GridPane.columnIndex="2" GridPane.rowIndex="4">
-                                                            <children>
-                                                                <Button fx:id="updateIncludeDirsBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsBrowseB" text="Browse" />
-                                                                <Button fx:id="updateIncludeDirsDeleteB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsDeleteB" text="Delete" />
-                                                            </children>
-                                                            <padding>
-                                                                <Insets left="5.0" />
-                                                            </padding>
-                                                        </VBox>
+                                                        <Label alignment="CENTER_RIGHT" prefHeight="17.0" text="Directory" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" />
+                                                        <TextField fx:id="updateDirectoryTF" onAction="#directoryChange" GridPane.columnIndex="1" GridPane.rowIndex="4" prefWidth="700"/>
+                                                        <Button fx:id="updateDirBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsBrowse" text="Browse" GridPane.columnIndex="2" GridPane.rowIndex="4" />
                                                     </children>
                                                 </GridPane>
                                             </children>

@@ -13,8 +13,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -31,18 +29,19 @@ public class Job {
         NOTSET, // not set yet
         CREATE, // create a new manifest
         VERIFY, // verify an existing manifest
-        UPDATE                     // update some items in a manifest     
+        UPDATE  // update some items in a manifest     
     }
-    Task task;                      // what we want done
-    Path manifest;                  // manifest file to manipulate
-    String actor;                   // who is creating or updating the manifest
-    ObservableList<String> directories; // list of directories to process
-    String comment;                 // comment about creation or update
-    String identifier;              // identifier of this uplift (series/consignment/set)
-    String hashAlg;                 // hash algorithm to use
+    Task task;          // what we want done
+    Path manifest;      // manifest file to manipulate
+    String actor;       // who is creating or updating the manifest
+    Path directory;     // list of directories to process
+    String comment;     // comment about creation or update
+    String identifier;  // identifier of this uplift (series/consignment/set)
+    String hashAlg;     // hash algorithm to use
+    String dateTimeCreated; // date and time the manifest was created
 
-    boolean verbose;                // true if verbose output
-    boolean debug;                  // true if debugging output
+    boolean verbose;    // true if verbose output
+    boolean debug;      // true if debugging output
 
     /**
      * Constructor
@@ -53,9 +52,10 @@ public class Job {
         task = Task.CREATE;
         manifest = null;
         actor = null;
-        directories = FXCollections.observableArrayList();
+        directory = null;
         comment = null;
         identifier = null;
+        dateTimeCreated = null;
         hashAlg = "SHA-1";
     }
 
@@ -65,10 +65,10 @@ public class Job {
     public void free() {
         manifest = null;
         actor = null;
-        directories.clear();
-        directories = null;
+        directory = null;
         comment = null;
         identifier = null;
+        dateTimeCreated = null;
     }
 
     /**
@@ -81,7 +81,7 @@ public class Job {
         if (task == Task.NOTSET) {
             return false;
         }
-        if (directories == null || directories.size() == 0) {
+        if (directory == null) {
             return false;
         }
         if (actor == null) {
@@ -144,14 +144,8 @@ public class Job {
         if (comment != null) {
             j1.put("comment", comment);
         }
-        if (directories != null && directories.size() > 0) {
-            ja1 = new JSONArray();
-            for (i = 0; i < directories.size(); i++) {
-                j2 = new JSONObject();
-                j2.put("directory", directories.get(i).toString());
-                ja1.add(j2);
-            }
-            j1.put("directoriesToInclude", ja1);
+        if (directory != null) {
+            j1.put("directory", directory.toString());
         }
         if (manifest != null) {
             j1.put("manifest", manifest.toString());
@@ -270,14 +264,7 @@ public class Job {
         }
         verbose = ((Boolean) j1.get("verboseReporting"));
         debug = ((Boolean) j1.get("debugReporting"));
-        ja1 = (JSONArray) j1.get("directoriesToInclude");
-        if (ja1 != null) {
-            directories.clear();
-            for (i = 0; i < ja1.size(); i++) {
-                j2 = (JSONObject) ja1.get(i);
-                directories.add((String) j2.get("directory"));
-            }
-        }
+        directory = Paths.get((String) j1.get("directory"));
         if ((s = (String) j1.get("manifest")) != null) {
             manifest = Paths.get(s);
         }
@@ -331,17 +318,13 @@ public class Job {
             sb.append("not set");
         }
         sb.append("'\n");
-        sb.append("Directories To Include: ");
-        if (directories != null && directories.size() > 0) {
-            sb.append("\n");
-            for (i = 0; i < directories.size(); i++) {
-                sb.append(" '");
-                sb.append(directories.get(i).toString());
-                sb.append("'\n");
-            }
+        sb.append("Directory: ");
+        if (directory != null) {
+            sb.append(directory.toString());
         } else {
-            sb.append("\n");
+            sb.append("None specified");
         }
+        sb.append("\n");
         sb.append("Comment: '");
         if (comment != null) {
             sb.append(comment);

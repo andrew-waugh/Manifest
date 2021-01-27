@@ -7,26 +7,19 @@ package Manifest;
 
 import VERSCommon.AppError;
 import VERSCommon.AppFatal;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Handler;
-import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import javafx.application.HostServices;
 import javafx.application.Platform;
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
@@ -36,20 +29,26 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 import org.json.simple.JSONObject;
 
 /**
- * FXML Controller class
+ * This class reports on the progress and results of creating or verifying a
+ * manifest. It consists of three inter-related classes - the
+ * FXMLProgressController itself which runs the GUI screen, and two internal
+ * classes: ManifestService and DoManifestTask. These implement a thread that
+ * manage the actual work. The separate thread allows the GUI to remain responsive
+ * while the work is actually being carried out.
+ * 
+ * Note this class doesn't actually do the work - it handles communication
+ * between the thread that manages the GUI and the thread that does the work.
  *
  * @author Andrew
  */
-public class FXMLProgressController extends BaseManifestController implements Initializable {
+public class FXMLProgressController extends BaseManifestController {
 
     @FXML
     private AnchorPane rootAP;
@@ -66,20 +65,15 @@ public class FXMLProgressController extends BaseManifestController implements In
 
     Job job;                    // information shared between scenes
     HostServices hostServices;
-    private ArrayList<String> results; // list of results generated
-    int objectsToProcess;       // totalObjects objects to process
-    manifestService cms;        // Created to handle processing
+    ManifestService cms;        // The service to handle processing
+    
+    static String defaultText = "Stage 2 processing - no errors or warnings generated yet\n";
 
     /**
-     * Initializes the controller class.
-     *
-     * @param url
-     * @param rb
+     * Initializes the controller class. This is called when the GUI screen
+     * is created.
      */
-    @Override
-    public void initialize(URL url, ResourceBundle rb) {
-        results = new ArrayList<String>();
-        objectsToProcess = 1;
+    public void initialize() {
         processedPB.setProgress(0);
 
         try {
@@ -101,7 +95,9 @@ public class FXMLProgressController extends BaseManifestController implements In
     }
 
     /**
-     * Carry out the instructions from the setup screen
+     * This is called by the SetupRunController when it is desired to start a
+     * new processing run. It passes in the details of the job to be run and
+     * starts the service
      *
      * @param job information about manifest to be created
      * @param baseDirectory the base directory
@@ -110,12 +106,14 @@ public class FXMLProgressController extends BaseManifestController implements In
 
         this.job = job;
         this.baseDirectory = baseDirectory;
-        cms = new manifestService();
-        cms.start();
+        
+        // start the service that will do the work (which can be reused for multiple tasks)
+        cms = new ManifestService();
+        cms.start(); // start the service
     }
 
     /**
-     * Callback when user presses 'Finish' button
+     * Callback when user presses a close button or the close window button
      */
     @FXML
     private void handleCloseAction(ActionEvent event) throws Exception {
@@ -134,14 +132,14 @@ public class FXMLProgressController extends BaseManifestController implements In
     /**
      * Create a service that processes the manifest
      */
-    private class manifestService extends Service<ArrayList<String>> {
+    private class ManifestService extends Service<ArrayList<String>> {
 
         // create the task (i.e. thread) that actually processes the manifest
         @Override
         protected Task<ArrayList<String>> createTask() {
             DoManifestTask manifestTask;
 
-            warningTA.insertText(0, "No errors or warnings yet\n");
+            System.out.println("Creating task");
             manifestTask = new DoManifestTask(job, warningTA, processedPB, countL);
 
             // this event handler is called when the thread completes, and it
@@ -150,14 +148,23 @@ public class FXMLProgressController extends BaseManifestController implements In
             manifestTask.addEventHandler(WorkerStateEvent.WORKER_STATE_SUCCEEDED, new EventHandler<WorkerStateEvent>() {
                 @Override
                 public void handle(WorkerStateEvent event) {
-                    warningTA.appendText(getValue().toString());
-                    warningTA.positionCaret(warningTA.getLength() - 1);
-                    processedPB.setProgress(1);
+                    ArrayList<String> results;
+
+                    results = getValue();
+                    if (results.size() > 0) {
+                        if (warningTA.getText().equals(defaultText)) {
+                            warningTA.clear();
+                        }
+                        for (int j = 0; j < results.size(); j++) {
+                            warningTA.appendText(results.get(j));
+                            warningTA.appendText("\n");
+                        }
+                        results.clear();
+                    }
                 }
             });
             return manifestTask;
         }
-
     }
 
     /**
@@ -173,12 +180,14 @@ public class FXMLProgressController extends BaseManifestController implements In
         int objectsProcessed;     // files processed
         Manifest manifest;      // Encapsulation of the file harvest itself
         int totalObjects;
+        ArrayList<String> results; // list of results generated
 
         public DoManifestTask(Job job, TextArea ta, ProgressBar pb, Label count) {
             this.job = job;
             this.ta = ta;
             this.pb = pb;
             this.count = count;
+            results = new ArrayList<>();
             objectsProcessed = 0;
         }
 
@@ -190,12 +199,9 @@ public class FXMLProgressController extends BaseManifestController implements In
          */
         @Override
         protected ArrayList<String> call() {
-            ArrayList<String> results; // list of results generated
             LogHandler lh;
-            int i;
 
             // create a list in which to put the results of processing 
-            results = new ArrayList<>();
             updateValue(results);
 
             try {
@@ -206,33 +212,26 @@ public class FXMLProgressController extends BaseManifestController implements In
                 return results;
             }
 
+            // set up defaults
+            Platform.runLater(() -> {
+                ta.insertText(0, "Stage 1: counting objects");
+                count.setText("0/unknown");
+                pb.setProgress(0.0);
+            });
+
             // go through list of directories, counting number of files to hash
-            totalObjects = 0;
-            for (i = 0; i < job.directories.size() && !isCancelled(); i++) {
-                totalObjects += count((Paths.get(job.directories.get(i))));
-            }
+            totalObjects = count(job.directory);
             if (isCancelled()) {
                 return results;
             }
             Platform.runLater(() -> {
-                countL.setText("0/" + totalObjects);
+                ta.clear();
+                ta.insertText(0, defaultText);
+                count.setText("0/" + totalObjects);
+                pb.setProgress(0.0);
             });
 
-            // say we are starting...
-            /*
-            results.add("Starting " + job.directories.get(i) + "\n");
-            Platform.runLater(() -> {
-                for (int j = 0; j < results.size(); j++) {
-                    ta.appendText(results.get(j));
-                    ta.appendText("\n");
-                }
-                results.clear();
-                // lv.scrollTo(lv.getItems().size() - 1);
-            });
-             */
-            // go through list of directories, pausing after each to deal with
-            // results and check if we've been cancelled
-            // System.out.println("Processing size: " + job.items.size());
+            // process the directory
             try {
                 if (job.task == Job.Task.CREATE) {
                     manifest.createManifest();
@@ -240,11 +239,23 @@ public class FXMLProgressController extends BaseManifestController implements In
                     manifest.checkManifest();
                 }
             } catch (AppFatal | AppError af) {
-                System.out.println("creating manifest error: "+af.getMessage());
+                System.out.println("Processing manifest error: " + af.getMessage());
             }
 
             Platform.runLater(() -> {
-                // statusL.setText("Finished");
+                if (results.size() > 0) {
+                    if (ta.getText().equals(defaultText)) {
+                        ta.clear();
+                    }
+                    for (int j = 0; j < results.size(); j++) {
+                        ta.appendText(results.get(j));
+                        ta.appendText("\n");
+                    }
+                    results.clear();
+                }
+                countL.setText(objectsProcessed + "/" + totalObjects);
+                pb.setProgress(1.0);
+                ta.appendText("Finished\n");
             });
             return results;
         }
@@ -268,12 +279,16 @@ public class FXMLProgressController extends BaseManifestController implements In
             // schedule an update on the GUI
             Platform.runLater(() -> {
                 currentlyProcessingL.setText(id);
-                for (int j = 0; j < results.size(); j++) {
-                    ta.appendText(results.get(j));
-                    ta.appendText("\n");
+                if (results.size() > 0) {
+                    if (ta.getText().equals(defaultText)) {
+                        ta.clear();
+                    }
+                    for (int j = 0; j < results.size(); j++) {
+                        ta.appendText(results.get(j));
+                        ta.appendText("\n");
+                    }
+                    results.clear();
                 }
-                results.clear();
-                // lv.scrollTo(lv.getItems().size() - 1);
                 countL.setText(objectsProcessed + "/" + totalObjects);
                 pb.setProgress(k);
             });
@@ -312,6 +327,9 @@ public class FXMLProgressController extends BaseManifestController implements In
                 // ignore - it's only a status
             }
         } else if (Files.isRegularFile(f)) {
+            Platform.runLater(() -> {
+                    currentlyProcessingL.setText(f.getFileName().toString());
+                });
             c++;
         }
         return c;
@@ -337,7 +355,7 @@ public class FXMLProgressController extends BaseManifestController implements In
             String s;
 
             s = sf.format(record);
-            responses.add(s+"\n");
+            responses.add(s + "\n");
         }
 
         @Override

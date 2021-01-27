@@ -15,7 +15,6 @@ import java.util.ResourceBundle;
 import javafx.application.HostServices;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -27,8 +26,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.ListView;
-import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
@@ -36,7 +33,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.InputMethodEvent;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -71,12 +67,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     @FXML
     private TextArea createCommentTA;
     @FXML
-    private ListView<String> createIncludeDirsLV;
-    @FXML
-    private Button createIncludeDirsBrowseB;
-    @FXML
-    private Button createIncludeDirsDeleteB;
-    @FXML
     private TextField createManifestTF;
     @FXML
     private Button createManifestBrowseB;
@@ -89,12 +79,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     @FXML
     private TextField verifyIdentifierTF;
     @FXML
-    private ListView<String> verifyIncludeDirsLV;
-    @FXML
-    private Button verifyIncludeDirsBrowseB;
-    @FXML
-    private Button verifyIncludeDirsDeleteB;
-    @FXML
     private TextArea verifyCommentTA;
     @FXML
     private TextField updateManifestTF;
@@ -104,12 +88,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private TextField updateIdentifierTF;
     @FXML
     private TextArea updateCommentTA;
-    @FXML
-    private ListView<String> updateIncludeDirsLV;
-    @FXML
-    private Button updateIncludeDirsBrowseB;
-    @FXML
-    private Button updateIncludeDirsDeleteB;
     @FXML
     private Button updateManifestBrowseB;
     @FXML
@@ -124,6 +102,18 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private Tab updateT;
     @FXML
     private Tab advT;
+    @FXML
+    private TextField createDirectoryTF;
+    @FXML
+    private Button createDirBrowseB;
+    @FXML
+    private TextField verifyDirectoryTF;
+    @FXML
+    private Button verifyDirBrowseB;
+    @FXML
+    private TextField updateDirectoryTF;
+    @FXML
+    private Button updateDirBrowseB;
 
     //private FXMLCreateSummaryController summaryController;
     /**
@@ -162,66 +152,21 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         createActorTF.focusedProperty().addListener(new FocusLostListener("createActorTF"));
         createIdentifierTF.focusedProperty().addListener(new FocusLostListener("createIdentifierTF"));
         createCommentTA.focusedProperty().addListener(new FocusLostListener("createCommentTA"));
-        createIncludeDirsLV.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        createIncludeDirsLV.setOnKeyTyped((KeyEvent keyEvent) -> {
-            switch (keyEvent.getCharacter()) {
-                case "\030":
-                    handleCutAction();
-                    break;
-                case "\003":
-                    handleCopyAction();
-                    break;
-                case "\026":
-                    handlePasteAction();
-                    break;
-                default:
-                    break;
-            }
-        });
+        createDirectoryTF.focusedProperty().addListener(new FocusLostListener("createDirectoryTF"));
         createManifestTF.focusedProperty().addListener(new FocusLostListener("createManifestTF"));
 
         // set up behavoir of verify GUI elements
         verifyActorTF.focusedProperty().addListener(new FocusLostListener("verifyActorTF"));
         verifyIdentifierTF.focusedProperty().addListener(new FocusLostListener("verifyIdentifierTF"));
         verifyCommentTA.focusedProperty().addListener(new FocusLostListener("verifyCommentTA"));
-        verifyIncludeDirsLV.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        verifyIncludeDirsLV.setOnKeyTyped((KeyEvent keyEvent) -> {
-            switch (keyEvent.getCharacter()) {
-                case "\030":
-                    handleCutAction();
-                    break;
-                case "\003":
-                    handleCopyAction();
-                    break;
-                case "\026":
-                    handlePasteAction();
-                    break;
-                default:
-                    break;
-            }
-        });
+        verifyDirectoryTF.focusedProperty().addListener(new FocusLostListener("verifyDirectoryTF"));
         verifyManifestTF.focusedProperty().addListener(new FocusLostListener("verifyManifestTF"));
 
         // set up behavoir of update GUI elements
         updateActorTF.focusedProperty().addListener(new FocusLostListener("updateActorTF"));
         updateIdentifierTF.focusedProperty().addListener(new FocusLostListener("updateIdentifierTF"));
         updateCommentTA.focusedProperty().addListener(new FocusLostListener("updateCommentTA"));
-        updateIncludeDirsLV.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        updateIncludeDirsLV.setOnKeyTyped((KeyEvent keyEvent) -> {
-            switch (keyEvent.getCharacter()) {
-                case "\030":
-                    handleCutAction();
-                    break;
-                case "\003":
-                    handleCopyAction();
-                    break;
-                case "\026":
-                    handlePasteAction();
-                    break;
-                default:
-                    break;
-            }
-        });
+        updateDirectoryTF.focusedProperty().addListener(new FocusLostListener("updateDirectoryTF"));
         updateManifestTF.focusedProperty().addListener(new FocusLostListener("updateManifestTF"));
 
         hashAlgorithmCB.getItems().addAll("SHA-1", "SHA-256", "SHA-384", "SHA-512");
@@ -274,25 +219,22 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         createTooltip(createActorTF, (String) json.get("actor"));
         createTooltip(createIdentifierTF, (String) json.get("identifier"));
         createTooltip(createCommentTA, (String) json.get("comment"));
-        createTooltip(createIncludeDirsLV, (String) json.get("includeDirectories"));
-        createTooltip(createIncludeDirsBrowseB, (String) json.get("browse"));
-        createTooltip(createIncludeDirsDeleteB, (String) json.get("delete"));
+        createTooltip(createDirectoryTF, (String) json.get("directory"));
+        createTooltip(createDirBrowseB, (String) json.get("browse"));
         createTooltip(createManifestTF, (String) json.get("manifest"));
         createTooltip(createManifestBrowseB, (String) json.get("browse"));
         createTooltip(verifyActorTF, (String) json.get("actor"));
         createTooltip(verifyIdentifierTF, (String) json.get("identifier"));
         createTooltip(verifyCommentTA, (String) json.get("comment"));
-        createTooltip(verifyIncludeDirsLV, (String) json.get("includeDirectories"));
-        createTooltip(verifyIncludeDirsBrowseB, (String) json.get("browse"));
-        createTooltip(verifyIncludeDirsDeleteB, (String) json.get("delete"));
+        createTooltip(verifyDirectoryTF, (String) json.get("directory"));
+        createTooltip(verifyDirBrowseB, (String) json.get("browse"));
         createTooltip(verifyManifestTF, (String) json.get("manifest"));
         createTooltip(verifyManifestBrowseB, (String) json.get("browse"));
         createTooltip(updateActorTF, (String) json.get("actor"));
         createTooltip(updateIdentifierTF, (String) json.get("identifier"));
         createTooltip(updateCommentTA, (String) json.get("comment"));
-        createTooltip(updateIncludeDirsLV, (String) json.get("includeDirectories"));
-        createTooltip(updateIncludeDirsBrowseB, (String) json.get("browse"));
-        createTooltip(updateIncludeDirsDeleteB, (String) json.get("delete"));
+        createTooltip(updateDirectoryTF, (String) json.get("directory"));
+        createTooltip(updateDirBrowseB, (String) json.get("browse"));
         createTooltip(updateManifestTF, (String) json.get("manifest"));
         createTooltip(updateManifestBrowseB, (String) json.get("browse"));
         createTooltip(hashAlgorithmCB, (String) json.get("hashAlgorithm"));
@@ -390,9 +332,15 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             updateCommentTA.setText(job.comment);
             updateCommentTA.positionCaret(job.comment.length());
         }
-        createIncludeDirsLV.setItems(job.directories);
-        verifyIncludeDirsLV.setItems(job.directories);
-        updateIncludeDirsLV.setItems(job.directories);
+        if (job.directory != null) {
+            s = job.directory.toString();
+            createDirectoryTF.setText(s);
+            createDirectoryTF.positionCaret(s.length());
+            verifyDirectoryTF.setText(s);
+            verifyDirectoryTF.positionCaret(s.length());
+            updateDirectoryTF.setText(s);
+            updateDirectoryTF.positionCaret(s.length());
+        }
         if (job.manifest != null) {
             s = job.manifest.toString();
             createManifestTF.setText(s);
@@ -555,60 +503,15 @@ public class FXMLSetupRunController extends BaseManifestController implements In
      * User has pressed the 'Browse' button to select a directory to include in
      * Manifest
      */
-    @FXML
-    private void dirsBrowseB(ActionEvent event) {
+    private void dirBrowseB(ActionEvent event) {
         File f;
-        int i;
-        String s;
 
         f = browseForDirectory("Select directory to include", null);
         if (f == null) {
             return;
         }
 
-        s = f.toString();
-        for (i = 0; i < job.directories.size(); i++) {
-            if (s.equals(job.directories.get(i))) { // only put a directory in once
-                return;
-            }
-            if (s.compareTo(job.directories.get(i)) < 0) {
-                job.directories.add(i, s);
-                break;
-            }
-        }
-        if (i == job.directories.size()) {
-            job.directories.add(s);
-        }
-        updateCreateButtonState();
-    }
-
-    /*
-     * User has selected some lines in the harvestDir text field and pushed the 'delete' button
-     */
-    @FXML
-    private void dirsDeleteB(ActionEvent event) {
-        ObservableList<Integer> toDelete;
-        int i;
-        Button b;
-
-        b = (Button) event.getSource();
-        switch (b.getId()) {
-            case ("createIncludeDirsDeleteB"):
-                toDelete = createIncludeDirsLV.getSelectionModel().getSelectedIndices();
-                break;
-            case ("verifyIncludeDirsDeleteB"):
-                toDelete = verifyIncludeDirsLV.getSelectionModel().getSelectedIndices();
-                break;
-            case ("updateIncludeDirsDeleteB"):
-                toDelete = updateIncludeDirsLV.getSelectionModel().getSelectedIndices();
-                break;
-            default:
-                toDelete = null;
-                break;
-        }
-        for (i = 0; i < toDelete.size(); i++) {
-            job.directories.remove(toDelete.get(i).intValue());
-        }
+        job.directory = f.toPath();
         updateCreateButtonState();
     }
 
@@ -650,7 +553,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private void manifestBrowse(ActionEvent event) {
         File f;
         String s;
-        Button b;
 
         f = browseForSaveFile("Select manifest", null);
         if (f == null) {
@@ -664,6 +566,58 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         verifyManifestTF.positionCaret(s.length());
         updateManifestTF.setText(s);
         updateManifestTF.positionCaret(s.length());
+        updateCreateButtonState();
+    }
+
+    /*
+     * User has browsed for a new root directory
+     */
+    @FXML
+    private void directoryChange(ActionEvent event) {
+        TextField tf;
+
+        tf = (TextField) event.getSource();
+        directoryChange(tf.getId());
+    }
+
+    private void directoryChange(String id) {
+        switch (id) {
+            case ("createDirectoryTF"):
+                job.directory = Paths.get(createDirectoryTF.getText());
+                break;
+            case ("verifyDirectoryTF"):
+                job.directory = Paths.get(verifyDirectoryTF.getText());
+                break;
+            case ("updateDirectoryTF"):
+                job.directory = Paths.get(updateDirectoryTF.getText());
+                break;
+            default:
+                break;
+        }
+        createDirectoryTF.setText(job.directory.toString());
+        verifyDirectoryTF.setText(job.directory.toString());
+        updateDirectoryTF.setText(job.directory.toString());
+        updateCreateButtonState();
+    }
+
+    @FXML
+    private void dirsBrowse(ActionEvent event) {
+        File f;
+        String s;
+        Button b;
+
+        f = browseForDirectory("Select root directory", null);
+        if (f == null) {
+            return;
+        }
+        job.directory = f.toPath();
+        s = job.directory.toString();
+        createDirectoryTF.setText(s);
+        createDirectoryTF.positionCaret(s.length());
+        verifyDirectoryTF.setText(s);
+        verifyDirectoryTF.positionCaret(s.length());
+        updateDirectoryTF.setText(s);
+        updateDirectoryTF.positionCaret(s.length());
         updateCreateButtonState();
     }
 
@@ -721,6 +675,15 @@ public class FXMLSetupRunController extends BaseManifestController implements In
                     case "updateManifestTF":
                         manifestChange("updateManifestTF");
                         break;
+                    case "createDirectoryTF":
+                        directoryChange("createDirectoryTF");
+                        break;
+                    case "verifyDirectoryTF":
+                        directoryChange("verifyDirectoryTF");
+                        break;
+                    case "updateDirectoryTF":
+                        directoryChange("updateDirectoryTF");
+                        break;
 
                     default:
                         break;
@@ -773,10 +736,10 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             }
         });
         if (selectTP.getSelectionModel().getSelectedItem() == createT) {
-            progressStage.setTitle("Creating Manifests Progress");
+            progressStage.setTitle("Creating manifest progress");
             job.task = Job.Task.CREATE;
         } else if (selectTP.getSelectionModel().getSelectedItem() == verifyT) {
-            progressStage.setTitle("Verifying Manifests Progress");
+            progressStage.setTitle("Verifying manifest progress");
             job.task = Job.Task.VERIFY;
         } else if (selectTP.getSelectionModel().getSelectedItem() == updateT) {
             progressStage.setTitle("Updating Manifests Progress");
@@ -794,7 +757,7 @@ public class FXMLSetupRunController extends BaseManifestController implements In
 
     /**
      * User has selected the Edit/Cut menu item. This cuts the selected text
-     * from the focussed TextField into a Clipboard
+     * from the focused TextField into a Clipboard
      *
      * @param event
      */
@@ -814,29 +777,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         if (n instanceof TextField) {
             TextField tf = (TextField) n;
             tf.cut();
-        } else if (n instanceof ListView) {
-            ListView lv = (ListView) n;
-            if ((i = lv.getSelectionModel().getSelectedIndex()) == -1) {
-                return;
-            }
-            if (lv == createIncludeDirsLV) {
-                s = createIncludeDirsLV.getItems().get(i);
-                content.putString(s);
-                clipboard.setContent(content);
-                createIncludeDirsLV.getItems().remove(i);
-            }
-            if (lv == verifyIncludeDirsLV) {
-                s = verifyIncludeDirsLV.getItems().get(i);
-                content.putString(s);
-                clipboard.setContent(content);
-                verifyIncludeDirsLV.getItems().remove(i);
-            }
-            if (lv == updateIncludeDirsLV) {
-                s = updateIncludeDirsLV.getItems().get(i);
-                content.putString(s);
-                clipboard.setContent(content);
-                updateIncludeDirsLV.getItems().remove(i);
-            }
         }
     }
 
@@ -862,26 +802,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         if (n instanceof TextField) {
             TextField tf = (TextField) n;
             tf.copy();
-        } else if (n instanceof ListView) {
-            ListView lv = (ListView) n;
-            if ((i = lv.getSelectionModel().getSelectedIndex()) == -1) {
-                return;
-            }
-            if (lv == createIncludeDirsLV) {
-                s = createIncludeDirsLV.getItems().get(i);
-                content.putString(s);
-                clipboard.setContent(content);
-            }
-            if (lv == verifyIncludeDirsLV) {
-                s = verifyIncludeDirsLV.getItems().get(i);
-                content.putString(s);
-                clipboard.setContent(content);
-            }
-            if (lv == updateIncludeDirsLV) {
-                s = updateIncludeDirsLV.getItems().get(i);
-                content.putString(s);
-                clipboard.setContent(content);
-            }
         }
     }
 
@@ -906,25 +826,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         if (n instanceof TextField) {
             TextField tf = (TextField) n;
             tf.paste();
-        } else if (n instanceof ListView) {
-            ListView lv = (ListView) n;
-            if (lv == createIncludeDirsLV) {
-                s = clipboard.getString();
-                if (s != null) {
-                    for (i = 0; i < job.directories.size(); i++) {
-                        if (s.equals(job.directories.get(i))) { // only put a directory in once
-                            return;
-                        }
-                        if (s.compareTo(job.directories.get(i)) < 0) {
-                            job.directories.add(i, s);
-                            break;
-                        }
-                    }
-                    if (i == job.directories.size()) {
-                        job.directories.add(s);
-                    }
-                }
-            }
         }
     }
 
