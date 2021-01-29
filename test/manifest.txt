@@ -1,2 +1,0 @@
-src\Manifest\Manifest.java	jFAtx7MS0e83uq4zTRoovxJ4vH0=
-src\Manifest\VEOResult.java	7Zi6bhjbWl4KbyBDi6eY0XeXJT0=

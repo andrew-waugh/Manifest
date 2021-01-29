@@ -1,0 +1,19 @@
+{
+ "create": {
+  "actor": "The person or organisation creating the manifest",
+  "identifier": "An identifier that uniquely identifies the collection the manifest represents",
+  "comment": "A free text comment describing the manifest and its contents",
+  "directory": "The directory containing the files in the manifest",
+  "browse": "Open a file browsing window to select a file or directory",
+  "manifest": "The file name of the manifest",
+  "logFile": "The file name of the log file to be created (if any)",
+  "hashAlgorithm": "Which hash algorithm to use (if any)",
+  "verboseOutput": "Provides more detail about the processing",
+  "debugOutput": "Provides even more detail about the processing",
+  "createManifests": "Press here to create or verify the requested manifest",
+  "report": "Exception reports from processing",
+  "progress": "Progress in processing the manifest",
+  "processing": "Number of files processed",
+  "finish": "Terminate construction of VEOs"
+    }
+}
