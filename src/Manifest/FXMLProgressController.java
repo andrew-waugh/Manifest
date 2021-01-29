@@ -143,7 +143,7 @@ public class FXMLProgressController extends BaseManifestController {
         protected Task<ArrayList<String>> createTask() {
             DoManifestTask manifestTask;
 
-            manifestTask = new DoManifestTask(job, warningTA, processedPB, countL);
+            manifestTask = new DoManifestTask(job, warningTA, processedPB, countL, finishB);
 
             // this event handler is called when the thread completes, and it
             // puts the response into the report list view and scrolls to the
@@ -188,16 +188,18 @@ public class FXMLProgressController extends BaseManifestController {
         final TextArea ta;      // the list view that will display the logging results
         final ProgressBar pb;   // the progress bar
         final Label count;
+        final Button fb;        // the finish button
         int objectsProcessed;     // files processed
         Manifest manifest;      // Encapsulation of the file harvest itself
         int totalObjects;
         ArrayList<String> results; // list of results generated
 
-        public DoManifestTask(Job job, TextArea ta, ProgressBar pb, Label count) {
+        public DoManifestTask(Job job, TextArea ta, ProgressBar pb, Label count, Button fb) {
             this.job = job;
             this.ta = ta;
             this.pb = pb;
             this.count = count;
+            this.fb = fb;
             results = new ArrayList<>();
             objectsProcessed = 0;
         }
@@ -233,6 +235,7 @@ public class FXMLProgressController extends BaseManifestController {
                 ta.insertText(0, "Stage 1: counting objects");
                 count.setText("0/unknown");
                 pb.setProgress(0.0);
+                fb.setText("Cancel processing");
             });
 
             // go through list of directories, counting number of files to hash
@@ -272,6 +275,7 @@ public class FXMLProgressController extends BaseManifestController {
                 countL.setText(objectsProcessed + "/" + totalObjects);
                 pb.setProgress(1.0);
                 ta.appendText("Finished\n");
+                fb.setText("Close");
             });
             return results;
         }
@@ -371,7 +375,7 @@ public class FXMLProgressController extends BaseManifestController {
             String s;
 
             s = sf.format(record);
-            responses.add(s + "\n");
+            responses.add(s);
         }
 
         @Override
