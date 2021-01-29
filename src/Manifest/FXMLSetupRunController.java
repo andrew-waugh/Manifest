@@ -476,7 +476,7 @@ public class FXMLSetupRunController extends BaseManifestController implements In
 
     private void manifestChange(String id) {
         switch (id) {
-            case ("createManifestB"):
+            case ("createManifestTF"):
                 job.manifest = Paths.get(createManifestTF.getText());
                 break;
             case ("verifyManifestTF"):
