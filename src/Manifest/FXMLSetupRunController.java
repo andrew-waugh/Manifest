@@ -98,6 +98,8 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private TextField verifyDirectoryTF;
     @FXML
     private Button verifyDirBrowseB;
+    @FXML
+    private CheckBox updateManifestCB;
 
     //private FXMLCreateSummaryController summaryController;
     /**

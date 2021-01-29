@@ -113,6 +113,7 @@
                                                         <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="NEVER" />
                                                         <RowConstraints vgrow="ALWAYS" />
+                                                        <RowConstraints vgrow="NEVER" />
                                                     </rowConstraints>
                                                     <children>
                                                         <Label alignment="CENTER_RIGHT" prefHeight="17.0" text="Directory" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" />
@@ -127,6 +128,8 @@
                                                         <TextField fx:id="verifyIdentifierTF" onAction="#identiferChange" GridPane.columnIndex="1" GridPane.rowIndex="3" />
                                                         <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Comment" textAlignment="RIGHT" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="4" />
                                                         <TextArea fx:id="verifyCommentTA" onInputMethodTextChanged="#commentChange" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                                                        <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Update manifest" textAlignment="RIGHT" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="5" />
+                                                        <CheckBox fx:id="updateManifestCB" mnemonicParsing="false" prefHeight="17.0" prefWidth="135.0" selected="false" text="" GridPane.columnIndex="1" GridPane.rowIndex="5" />
                                                     </children>
                                                 </GridPane>
                                             </children>
