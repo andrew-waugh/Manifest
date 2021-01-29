@@ -54,6 +54,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
 public class Manifest implements XMLConsumer {
+
     static String classname = "Manifest"; // for reporting
     Job job;                // job description
     int fileCount;          // number of files processed
@@ -317,7 +318,7 @@ public class Manifest implements XMLConsumer {
         }
 
         cancelled = false;
-        
+
         // if file is a directory, go through directory and test all the files
         if (Files.isDirectory(p)) {
             if (job.verbose) {
@@ -357,9 +358,9 @@ public class Manifest implements XMLConsumer {
             if (p.getNameCount() > 3) {
                 p = p.subpath(p.getNameCount() - 3, p.getNameCount());
             }
-            cancelled = reporter.updateStatus(".../"+p.toString(), null);
+            cancelled = reporter.updateStatus(".../" + p.toString(), null);
         }
-        
+
         return cancelled;
     }
 
@@ -452,13 +453,13 @@ public class Manifest implements XMLConsumer {
                 oldDetails.hashAlg = value;
                 break;
             case "Manifest/SourceDirectory":    // source directory
-                oldDetails.directory = value != null?Paths.get(value):null;
+                oldDetails.directory = value != null ? Paths.get(value) : null;
                 break;
             case "Manifest/History/DateTimeCreated":    // date time created
                 oldDetails.dateTimeCreated = value;
                 break;
             case "Manifest/Files/f/p":    // path within source directory
-                file = value!=null?Paths.get(value):null;
+                file = value != null ? Paths.get(value) : null;
                 break;
             case "Manifest/Files/f/h":    // hash value of file
                 hashValue = value;
@@ -483,15 +484,15 @@ public class Manifest implements XMLConsumer {
         String recalcHash;
         boolean cancelled;
 
-        
         actualFile = job.directory.resolve(partialFile);
         // System.out.println("Processing... '"+job.directory.toString()+"' '" + partialFile.toString() + "' '"+actualFile.toString()+"' hash " + hash);
         if (Files.exists(actualFile)) {
             recalcHash = hashFile(actualFile);
             if (!recalcHash.equals(hash)) {
-                LOG.log(Level.SEVERE, "File ''{0}'' corrupt: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
+                LOG.log(Level.SEVERE, "File ''{0}'' is corrupt: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
+            } else {
+                LOG.log(Level.INFO, "File ''{0}'' passed: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
             }
-            LOG.log(Level.INFO, "File ''{0}'' passed: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
         } else {
             LOG.log(Level.SEVERE, "File ''{0}'' is in manifest, but is not present", new Object[]{actualFile.toString()});
         }
@@ -501,7 +502,7 @@ public class Manifest implements XMLConsumer {
             } else {
                 p = actualFile;
             }
-            cancelled = reporter.updateStatus(".../"+p.toString(), null);
+            cancelled = reporter.updateStatus("...\\" + p.toString(), null);
             if (cancelled) {
                 throw new AppError("User cancelled verification partway through");
             }
