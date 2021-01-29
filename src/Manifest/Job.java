@@ -84,16 +84,13 @@ public class Job {
         if (directory == null) {
             return false;
         }
-        if (actor == null) {
-            return false;
-        }
         if (manifest == null) {
             return false;
         }
-        if (task == Task.CREATE && identifier == null) {
+        if (task == Task.CREATE && actor == null) {
             return false;
         }
-        if (task == Task.UPDATE && comment == null) {
+        if (task == Task.CREATE && identifier == null) {
             return false;
         }
         return true;
