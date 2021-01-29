@@ -81,16 +81,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     @FXML
     private TextArea verifyCommentTA;
     @FXML
-    private TextField updateManifestTF;
-    @FXML
-    private TextField updateActorTF;
-    @FXML
-    private TextField updateIdentifierTF;
-    @FXML
-    private TextArea updateCommentTA;
-    @FXML
-    private Button updateManifestBrowseB;
-    @FXML
     private Button goB;
     @FXML
     private TabPane selectTP;
@@ -98,8 +88,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private Tab createT;
     @FXML
     private Tab verifyT;
-    @FXML
-    private Tab updateT;
     @FXML
     private Tab advT;
     @FXML
@@ -110,10 +98,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private TextField verifyDirectoryTF;
     @FXML
     private Button verifyDirBrowseB;
-    @FXML
-    private TextField updateDirectoryTF;
-    @FXML
-    private Button updateDirBrowseB;
 
     //private FXMLCreateSummaryController summaryController;
     /**
@@ -161,13 +145,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         verifyCommentTA.focusedProperty().addListener(new FocusLostListener("verifyCommentTA"));
         verifyDirectoryTF.focusedProperty().addListener(new FocusLostListener("verifyDirectoryTF"));
         verifyManifestTF.focusedProperty().addListener(new FocusLostListener("verifyManifestTF"));
-
-        // set up behavoir of update GUI elements
-        updateActorTF.focusedProperty().addListener(new FocusLostListener("updateActorTF"));
-        updateIdentifierTF.focusedProperty().addListener(new FocusLostListener("updateIdentifierTF"));
-        updateCommentTA.focusedProperty().addListener(new FocusLostListener("updateCommentTA"));
-        updateDirectoryTF.focusedProperty().addListener(new FocusLostListener("updateDirectoryTF"));
-        updateManifestTF.focusedProperty().addListener(new FocusLostListener("updateManifestTF"));
 
         hashAlgorithmCB.getItems().addAll("SHA-1", "SHA-256", "SHA-384", "SHA-512");
         hashAlgorithmCB.valueProperty().addListener((ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
@@ -230,13 +207,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         createTooltip(verifyDirBrowseB, (String) json.get("browse"));
         createTooltip(verifyManifestTF, (String) json.get("manifest"));
         createTooltip(verifyManifestBrowseB, (String) json.get("browse"));
-        createTooltip(updateActorTF, (String) json.get("actor"));
-        createTooltip(updateIdentifierTF, (String) json.get("identifier"));
-        createTooltip(updateCommentTA, (String) json.get("comment"));
-        createTooltip(updateDirectoryTF, (String) json.get("directory"));
-        createTooltip(updateDirBrowseB, (String) json.get("browse"));
-        createTooltip(updateManifestTF, (String) json.get("manifest"));
-        createTooltip(updateManifestBrowseB, (String) json.get("browse"));
         createTooltip(hashAlgorithmCB, (String) json.get("hashAlgorithm"));
         createTooltip(verboseCB, (String) json.get("verboseOutput"));
         createTooltip(debugCB, (String) json.get("debugOutput"));
@@ -313,24 +283,18 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             createActorTF.positionCaret(job.actor.length());
             verifyActorTF.setText(job.actor);
             verifyActorTF.positionCaret(job.actor.length());
-            updateActorTF.setText(job.actor);
-            updateActorTF.positionCaret(job.actor.length());
         }
         if (job.identifier != null) {
             createIdentifierTF.setText(job.identifier);
             createIdentifierTF.positionCaret(job.identifier.length());
             verifyIdentifierTF.setText(job.identifier);
             verifyIdentifierTF.positionCaret(job.identifier.length());
-            updateIdentifierTF.setText(job.identifier);
-            updateIdentifierTF.positionCaret(job.identifier.length());
         }
         if (job.comment != null) {
             createCommentTA.setText(job.comment);
             createCommentTA.positionCaret(job.comment.length());
             verifyCommentTA.setText(job.comment);
             verifyCommentTA.positionCaret(job.comment.length());
-            updateCommentTA.setText(job.comment);
-            updateCommentTA.positionCaret(job.comment.length());
         }
         if (job.directory != null) {
             s = job.directory.toString();
@@ -338,8 +302,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             createDirectoryTF.positionCaret(s.length());
             verifyDirectoryTF.setText(s);
             verifyDirectoryTF.positionCaret(s.length());
-            updateDirectoryTF.setText(s);
-            updateDirectoryTF.positionCaret(s.length());
         }
         if (job.manifest != null) {
             s = job.manifest.toString();
@@ -347,8 +309,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             createManifestTF.positionCaret(s.length());
             verifyManifestTF.setText(s);
             verifyManifestTF.positionCaret(s.length());
-            updateManifestTF.setText(s);
-            updateManifestTF.positionCaret(s.length());
         }
         if (job.hashAlg != null) {
             hashAlgorithmCB.getSelectionModel().select(job.hashAlg);
@@ -407,9 +367,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             case ("verifyActorTF"):
                 job.actor = verifyActorTF.getText();
                 break;
-            case ("updateActorTF"):
-                job.actor = updateActorTF.getText();
-                break;
             default:
                 break;
         }
@@ -421,7 +378,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         }
         createActorTF.setText(job.actor);
         verifyActorTF.setText(job.actor);
-        updateActorTF.setText(job.actor);
         updateCreateButtonState();
     }
 
@@ -444,9 +400,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             case ("verifyIdentifierTF"):
                 job.identifier = verifyIdentifierTF.getText();
                 break;
-            case ("updateIdentifierTF"):
-                job.identifier = updateIdentifierTF.getText();
-                break;
             default:
                 break;
         }
@@ -458,7 +411,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         }
         createIdentifierTF.setText(job.identifier);
         verifyIdentifierTF.setText(job.identifier);
-        updateIdentifierTF.setText(job.identifier);
         updateCreateButtonState();
     }
 
@@ -481,9 +433,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             case ("verifyCommentTA"):
                 job.comment = verifyCommentTA.getText();
                 break;
-            case ("updateCommentTA"):
-                job.comment = updateCommentTA.getText();
-                break;
             default:
                 break;
         }
@@ -495,7 +444,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         }
         createCommentTA.setText(job.comment);
         verifyCommentTA.setText(job.comment);
-        updateCommentTA.setText(job.comment);
         updateCreateButtonState();
     }
 
@@ -534,15 +482,11 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             case ("verifyManifestTF"):
                 job.manifest = Paths.get(verifyManifestTF.getText());
                 break;
-            case ("updateManifestTF"):
-                job.manifest = Paths.get(updateManifestTF.getText());
-                break;
             default:
                 break;
         }
         createManifestTF.setText(job.manifest.toString());
         verifyManifestTF.setText(job.manifest.toString());
-        updateManifestTF.setText(job.manifest.toString());
         updateCreateButtonState();
     }
 
@@ -564,8 +508,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         createManifestTF.positionCaret(s.length());
         verifyManifestTF.setText(s);
         verifyManifestTF.positionCaret(s.length());
-        updateManifestTF.setText(s);
-        updateManifestTF.positionCaret(s.length());
         updateCreateButtonState();
     }
 
@@ -588,15 +530,11 @@ public class FXMLSetupRunController extends BaseManifestController implements In
             case ("verifyDirectoryTF"):
                 job.directory = Paths.get(verifyDirectoryTF.getText());
                 break;
-            case ("updateDirectoryTF"):
-                job.directory = Paths.get(updateDirectoryTF.getText());
-                break;
             default:
                 break;
         }
         createDirectoryTF.setText(job.directory.toString());
         verifyDirectoryTF.setText(job.directory.toString());
-        updateDirectoryTF.setText(job.directory.toString());
         updateCreateButtonState();
     }
 
@@ -616,8 +554,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         createDirectoryTF.positionCaret(s.length());
         verifyDirectoryTF.setText(s);
         verifyDirectoryTF.positionCaret(s.length());
-        updateDirectoryTF.setText(s);
-        updateDirectoryTF.positionCaret(s.length());
         updateCreateButtonState();
     }
 
@@ -741,9 +677,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         } else if (selectTP.getSelectionModel().getSelectedItem() == verifyT) {
             progressStage.setTitle("Verifying manifest progress");
             job.task = Job.Task.VERIFY;
-        } else if (selectTP.getSelectionModel().getSelectedItem() == updateT) {
-            progressStage.setTitle("Updating Manifests Progress");
-            job.task = Job.Task.UPDATE;
         } else {
             progressStage.setTitle("Progress");
         }

@@ -20,6 +20,10 @@ import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import javafx.application.HostServices;
 import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ObjectPropertyBase;
+import javafx.beans.property.Property;
+import javafx.beans.property.StringProperty;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
@@ -139,7 +143,6 @@ public class FXMLProgressController extends BaseManifestController {
         protected Task<ArrayList<String>> createTask() {
             DoManifestTask manifestTask;
 
-            System.out.println("Creating task");
             manifestTask = new DoManifestTask(job, warningTA, processedPB, countL);
 
             // this event handler is called when the thread completes, and it
@@ -165,6 +168,14 @@ public class FXMLProgressController extends BaseManifestController {
             });
             return manifestTask;
         }
+        
+        // the user requested to cancel the job
+        /*
+        @Override
+        protected void cancelled() {
+            System.out.println("We've been cancelled!");
+        }
+        */
     }
 
     /**
@@ -192,8 +203,13 @@ public class FXMLProgressController extends BaseManifestController {
         }
 
         /**
-         * Actually process files. The parameters of the work were provided when
-         * the task was created in the Job argument. The
+         * Actually process files. The parameters of the work to be performed
+         * were provided when the task was created; the GUI fields to be updated
+         * during the processing were also passed when the job was created.
+         * 
+         * Updates to the calling GUI are scheduled via 'runLater()' as these
+         * are executed in a different thread. Note that the 'runLater()' code
+         * copies all of the current results and then clears the results.
          *
          * @return a list of strings containing the results of the processing
          */
@@ -292,7 +308,7 @@ public class FXMLProgressController extends BaseManifestController {
                 countL.setText(objectsProcessed + "/" + totalObjects);
                 pb.setProgress(k);
             });
-            return !isCancelled();
+            return isCancelled();
         }
     }
 

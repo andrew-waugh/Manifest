@@ -25,14 +25,14 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Text?>
 
-<AnchorPane fx:id="mainAP" prefHeight="500.0" prefWidth="600.0" styleClass="mainFxmlClass" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Manifest.FXMLSetupRunController">
+<AnchorPane fx:id="mainAP" styleClass="mainFxmlClass" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Manifest.FXMLSetupRunController">
     <stylesheets>
         <URL value="@fxmlprogress.css" />
     </stylesheets>
     <children>
-        <VBox prefHeight="497.0" prefWidth="600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <VBox AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
             <children>
-                <MenuBar prefHeight="32.0" prefWidth="527.0">
+                <MenuBar prefHeight="32.0">
                     <menus>
                         <Menu mnemonicParsing="false" text="File">
                             <items>
@@ -56,22 +56,19 @@
                             </items>
                         </Menu>
                     </menus>
-                    <VBox.margin>
-                        <Insets />
-                    </VBox.margin>
                 </MenuBar>
-                <VBox prefWidth="600.0" VBox.vgrow="ALWAYS">
+                <VBox VBox.vgrow="ALWAYS">
                     <children>
-                        <TabPane fx:id="selectTP" prefWidth="500.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+                        <TabPane fx:id="selectTP" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
                             <tabs>
                                 <Tab fx:id="createT" text="Create Manifest">
                                     <content>
                                         <AnchorPane>
                                             <children>
-                                                <GridPane hgap="10.0" vgap="3.0" AnchorPane.bottomAnchor="20.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="20.0">
+                                                <GridPane hgap="10.0" vgap="3.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="10.0">
                                                     <columnConstraints>
                                                         <ColumnConstraints hgrow="NEVER" />
-                                                        <ColumnConstraints hgrow="ALWAYS" minWidth="100.0" prefWidth="400.0" />
+                                                        <ColumnConstraints hgrow="ALWAYS" minWidth="100.0" prefWidth="500.0" />
                                                         <ColumnConstraints hgrow="NEVER" />
                                                     </columnConstraints>
                                                     <rowConstraints>
@@ -104,10 +101,10 @@
                                     <content>
                                         <AnchorPane>
                                             <children>
-                                                <GridPane hgap="10.0" vgap="3.0" AnchorPane.bottomAnchor="20.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="20.0">
+                                                <GridPane hgap="10.0" vgap="3.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="10.0">
                                                     <columnConstraints>
                                                         <ColumnConstraints hgrow="NEVER" />
-                                                        <ColumnConstraints hgrow="ALWAYS" minWidth="100.0" prefWidth="400.0" />
+                                                        <ColumnConstraints hgrow="ALWAYS" minWidth="100.0" prefWidth="500.0" />
                                                         <ColumnConstraints hgrow="NEVER" />
                                                     </columnConstraints>
                                                     <rowConstraints>
@@ -130,42 +127,6 @@
                                                         <Button fx:id="verifyDirBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsBrowse" text="Browse" GridPane.columnIndex="2" GridPane.rowIndex="3" />
                                                         <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Comment" textAlignment="RIGHT" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="4" />
                                                         <TextArea fx:id="verifyCommentTA" onInputMethodTextChanged="#commentChange" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-                                                    </children>
-                                                </GridPane>
-                                            </children>
-                                        </AnchorPane>
-                                    </content>
-                                </Tab>
-                                <Tab fx:id="updateT" text="Update Manifest">
-                                    <content>
-                                        <AnchorPane>
-                                            <children>
-                                                <GridPane hgap="10.0" vgap="3.0" AnchorPane.bottomAnchor="20.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="20.0">
-                                                    <columnConstraints>
-                                                        <ColumnConstraints hgrow="NEVER" />
-                                                        <ColumnConstraints hgrow="ALWAYS" minWidth="100.0" prefWidth="400.0" />
-                                                        <ColumnConstraints hgrow="NEVER" />
-                                                    </columnConstraints>
-                                                    <rowConstraints>
-                                                        <RowConstraints vgrow="NEVER" />
-                                                        <RowConstraints vgrow="NEVER" />
-                                                        <RowConstraints vgrow="NEVER" />
-                                                        <RowConstraints vgrow="ALWAYS" />
-                                                        <RowConstraints vgrow="NEVER" />
-                                                    </rowConstraints>
-                                                    <children>
-                                                        <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" minWidth="130.0" prefHeight="25.0" text="Manifest" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.hgrow="NEVER" GridPane.rowIndex="0" />
-                                                        <TextField fx:id="updateManifestTF" onAction="#manifestChange" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                                                        <Button fx:id="updateManifestBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#manifestBrowse" text="Browse" GridPane.columnIndex="2" GridPane.rowIndex="0" />
-                                                        <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Updater" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="1" />
-                                                        <TextField fx:id="updateActorTF" onAction="#actorChange" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                                                        <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Identifier" textAlignment="RIGHT" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="2" />
-                                                        <TextField fx:id="updateIdentifierTF" onAction="#identiferChange" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                                                        <Label alignment="CENTER_RIGHT" prefHeight="25.0" text="Comment" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" GridPane.rowIndex="3" />
-                                                        <TextArea fx:id="updateCommentTA" onInputMethodTextChanged="#commentChange" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                                                        <Label alignment="CENTER_RIGHT" prefHeight="17.0" text="Directory" textAlignment="RIGHT" textFill="RED" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" />
-                                                        <TextField fx:id="updateDirectoryTF" onAction="#directoryChange" GridPane.columnIndex="1" GridPane.rowIndex="4" prefWidth="700"/>
-                                                        <Button fx:id="updateDirBrowseB" minWidth="68.0" mnemonicParsing="false" onAction="#dirsBrowse" text="Browse" GridPane.columnIndex="2" GridPane.rowIndex="4" />
                                                     </children>
                                                 </GridPane>
                                             </children>
