@@ -54,11 +54,8 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
 public class Manifest implements XMLConsumer {
-
     static String classname = "Manifest"; // for reporting
     Job job;                // job description
-    Runtime r;
-
     int fileCount;          // number of files processed
     String userId;          // user performing the conversion
     FXMLProgressController.DoManifestTask reporter; // call back for reporting
@@ -85,9 +82,7 @@ public class Manifest implements XMLConsumer {
         if (userId == null) {
             userId = "Unknown user";
         }
-        // xmlp = new XMLParser(this);
         reporter = null;
-        r = Runtime.getRuntime();
 
         // process command line arguments
         configure(args);
@@ -133,7 +128,10 @@ public class Manifest implements XMLConsumer {
      * Finalise...
      */
     public void close() {
-        // vp.free();
+        job.free();
+        job = null;
+        userId = null;
+        reporter = null;
     }
 
     /**
@@ -270,23 +268,31 @@ public class Manifest implements XMLConsumer {
     }
 
     /**
-     * Create a manifest - an XML file.
+     * Create a manifest - an XML file. If the user cancels the creation half
+     * way through, whatever has been produced is output.
      *
      * @throws VERSCommon.AppFatal
      */
     public void createManifest() throws AppFatal, AppError {
         XMLCreator xmlc;
+        boolean cancelled;
 
         // create manifest
         xmlc = new XMLCreator(true);
         xmlc.startXMLDoc(job.manifest, "Manifest", null);
-        xmlc.includeElement("creator", null, job.actor, false);
-        xmlc.includeElement("hashAlgorithm", null, job.hashAlg, false);
-        xmlc.includeElement("dateTimeCreated", null, VERSDate.versDateTime(0), false);
-        xmlc.includeElement("directory", null, job.directory.toString(), false);
-        xmlc.startElement("files", null, false);
-        hashTheFiles(job.directory, xmlc);
-        xmlc.endElement("files", false);
+        xmlc.includeElement("Creator", null, job.actor, false);
+        xmlc.includeElement("HashAlgorithm", null, job.hashAlg, false);
+        xmlc.includeElement("SourceDirectory", null, job.directory.toString(), false);
+        xmlc.startElement("History", null, false);
+        xmlc.includeElement("DateTimeCreated", null, VERSDate.versDateTime(0), false);
+        xmlc.includeElement("Comment", null, job.comment, false);
+        xmlc.endElement("History", false);
+        xmlc.startElement("Files", null, false);
+        cancelled = hashTheFiles(job.directory, xmlc);
+        if (cancelled) {
+            return;
+        }
+        xmlc.endElement("Files", false);
         xmlc.endXMLDoc();
     }
 
@@ -297,18 +303,21 @@ public class Manifest implements XMLConsumer {
      * @param p the file or directory to hashFiles
      * @param first this is the first entry in the directory
      */
-    private void hashTheFiles(Path p, XMLCreator xmlc) throws AppFatal {
+    private boolean hashTheFiles(Path p, XMLCreator xmlc) throws AppFatal {
         DirectoryStream<Path> ds;
         String hash;
+        boolean cancelled;
 
         // check that file or directory exists
         if (!Files.exists(p)) {
             if (job.verbose) {
                 LOG.log(Level.WARNING, "***File ''{0}'' does not exist", new Object[]{p.normalize().toString()});
             }
-            return;
+            return false;
         }
 
+        cancelled = false;
+        
         // if file is a directory, go through directory and test all the files
         if (Files.isDirectory(p)) {
             if (job.verbose) {
@@ -317,13 +326,16 @@ public class Manifest implements XMLConsumer {
             try {
                 ds = Files.newDirectoryStream(p);
                 for (Path p1 : ds) {
-                    hashTheFiles(p1, xmlc);
+                    cancelled = hashTheFiles(p1, xmlc);
+                    if (cancelled) {
+                        break;
+                    }
                 }
                 ds.close();
             } catch (IOException e) {
                 LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{p.normalize().toString(), e.getMessage()});
             }
-            return;
+            return cancelled;
         }
 
         if (Files.isRegularFile(p)) {
@@ -345,8 +357,10 @@ public class Manifest implements XMLConsumer {
             if (p.getNameCount() > 3) {
                 p = p.subpath(p.getNameCount() - 3, p.getNameCount());
             }
-            reporter.updateStatus(".../"+p.toString(), null);
+            cancelled = reporter.updateStatus(".../"+p.toString(), null);
         }
+        
+        return cancelled;
     }
 
     /**
@@ -393,20 +407,22 @@ public class Manifest implements XMLConsumer {
         // match the path to see if do we do something special?
         he = null;
         switch (eFound) {
-            case "Manifest/creator":         // creator of manifest
-            case "Manifest/hashAlgorithm":   // hash algorithm used
-            case "Manifest/dateTimeCreated": // date created
-            case "Manifest/directory":       // root of source directory
-            case "Manifest/files/f/p": // path name of file in manifest
-            case "Manifest/files/f/h": // hash algorithm
+            case "Manifest/Creator":         // creator of manifest
+            case "Manifest/HashAlgorithm":   // hash algorithm used
+            case "Manifest/SourceDirectory": // root of source directory
+            case "Manifest/History/DateTimeCreated": // date created
+            case "Manifest/Files/f/p": // path name of file in manifest
+            case "Manifest/Files/f/h": // hash algorithm
                 he = new HandleElement(HandleElement.VALUE_TO_STRING, false, null);
                 break;
-            case "Manifest/files/f":      // detail of each file
+            case "Manifest/Files/f":      // detail of each file
                 file = null;
                 hashValue = null;
                 break;
             case "Manifest":                 // manifest
-            case "Manifest/files":           // list of files in manifest
+            case "Manifest/History":
+            case "Manifest/History/Comment": // a comment that the creator added
+            case "Manifest/Files":           // list of files in manifest
                 break;
             default:
                 break;
@@ -429,25 +445,25 @@ public class Manifest implements XMLConsumer {
 
         // if recording store element value in appropriate global variable
         switch (eFound) {
-            case "Manifest/creator":    // Creator
+            case "Manifest/Creator":    // Creator
                 oldDetails.actor = value;
                 break;
-            case "Manifest/hashAlgorithm":    // hash algorithm used
+            case "Manifest/HashAlgorithm":    // hash algorithm used
                 oldDetails.hashAlg = value;
                 break;
-            case "Manifest/dateTimeCreated":    // date time created
-                oldDetails.dateTimeCreated = value;
-                break;
-            case "Manifest/directory":    // source directory
+            case "Manifest/SourceDirectory":    // source directory
                 oldDetails.directory = value != null?Paths.get(value):null;
                 break;
-            case "Manifest/files/f/p":    // path within source directory
+            case "Manifest/History/DateTimeCreated":    // date time created
+                oldDetails.dateTimeCreated = value;
+                break;
+            case "Manifest/Files/f/p":    // path within source directory
                 file = value!=null?Paths.get(value):null;
                 break;
-            case "Manifest/files/f/h":    // hash value of file
+            case "Manifest/Files/f/h":    // hash value of file
                 hashValue = value;
                 break;
-            case "Manifest/files/f":
+            case "Manifest/Files/f":
                 if (file == null || hashValue == null) {
                     throw new SAXException("File without both file (" + file + ") and hash (" + hashValue);
                 }
@@ -465,7 +481,7 @@ public class Manifest implements XMLConsumer {
     private boolean processFile(Path partialFile, String hash) throws AppError {
         Path actualFile, p;
         String recalcHash;
-        int i;
+        boolean cancelled;
 
         
         actualFile = job.directory.resolve(partialFile);
@@ -485,7 +501,10 @@ public class Manifest implements XMLConsumer {
             } else {
                 p = actualFile;
             }
-            reporter.updateStatus(".../"+p.toString(), null);
+            cancelled = reporter.updateStatus(".../"+p.toString(), null);
+            if (cancelled) {
+                throw new AppError("User cancelled verification partway through");
+            }
         }
         return true;
     }
