@@ -234,7 +234,7 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private void handleMenuSaveJobAction(ActionEvent event) {
         File f;
 
-        f = browseForSaveFile("Select Job File to save", null);
+        f = browseForSaveFile("Select Job File to save", ".json", null);
         if (f == null) {
             return;
         }
@@ -256,7 +256,7 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private void handleMenuLoadJobAction(ActionEvent event) {
         File f;
 
-        f = browseForOpenFile("Select Job File to load", null);
+        f = browseForOpenFile("Select Job File to load", ".json", null);
         if (f == null) {
             return;
         }
@@ -476,7 +476,7 @@ public class FXMLSetupRunController extends BaseManifestController implements In
 
     private void manifestChange(String id) {
         switch (id) {
-            case ("createManifestTF"):
+            case ("createManifestB"):
                 job.manifest = Paths.get(createManifestTF.getText());
                 break;
             case ("verifyManifestTF"):
@@ -498,7 +498,17 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         File f;
         String s;
 
-        f = browseForSaveFile("Select manifest", null);
+        f = null;
+        switch (((Button) event.getSource()).getId()) {
+            case ("createManifestBrowseB"):
+                f = browseForSaveFile("Select manifest", ".xml", null);
+                break;
+            case ("verifyManifestBrowseB"):
+                f = browseForOpenFile("Select manifest", ".xml", null);
+                break;
+            default:
+                break;
+        }
         if (f == null) {
             return;
         }

@@ -23,6 +23,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import javafx.scene.control.Control;
 import javafx.scene.control.Tooltip;
+import javafx.stage.FileChooser.ExtensionFilter;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -51,11 +52,10 @@ public class BaseManifestController {
     private static final String TOOLTIPS_PATH = "assets/tooltips.json";
 
     /**
-     * set up JSON reader for the tooltips
+     * Read tooltips from a JSON file
      *
      * @return JSONObject to read the tool tips from
-     * @throws AppFatal if the Tooltip file cannot be opened or
-     * read
+     * @throws AppFatal if the Tooltip file cannot be opened or read
      */
     protected JSONObject openTooltips() throws AppFatal {
         JSONParser parser;
@@ -124,7 +124,6 @@ public class BaseManifestController {
         if (tempOutputFolderFile != null) {
             baseDirectory = tempOutputFolderFile;
             outputFolderFile = tempOutputFolderFile;
-            // outputFolderField.setText(outputFolderFile.getPath());
         }
     }
 
@@ -177,19 +176,37 @@ public class BaseManifestController {
         return selectedDir;
     }
 
-    protected File browseForOpenFile(String title, File file) {
-        return browseFile(title, file, true);
+    /**
+     * Utility routines to wrap browseFile().
+     *
+     * @param title
+     * @param file
+     * @return
+     */
+    protected File browseForOpenFile(String title, String fileFormat, File file) {
+        return browseFile(title, file, fileFormat, true);
     }
 
-    protected File browseForSaveFile(String title, File file) {
-        return browseFile(title, file, false);
+    protected File browseForSaveFile(String title, String fileFormat, File file) {
+        return browseFile(title, file, fileFormat, false);
     }
 
-    protected File browseFile(String title, File file, boolean openFile) {
+    /**
+     * Browse for a file (as opposed to a directory).
+     *
+     * @param title title of browse window (i.e. what file is being opened)
+     * @param file an initial file to select
+     * @param fileFormat the file format to use
+     * @param openFile whether the file dialog is for *saving* or *opening* the
+     * file
+     * @return selected file
+     */
+    protected File browseFile(String title, File file, String fileFormat, boolean openFile) {
         FileChooser fileChooser;
         File parentFile;
         String fileName;
         File chosenFile;
+        ExtensionFilter ef;
 
         // sanity check...
         if (file == null && baseDirectory == null) {
@@ -215,6 +232,24 @@ public class BaseManifestController {
             fileChooser.setInitialDirectory(baseDirectory);
         } else {
             fileChooser.setInitialDirectory(new File("/"));
+        }
+
+        // add file format
+        ef = null;
+        switch (fileFormat.toLowerCase()) {
+            case (".xml"):
+            case ("xml"):
+                ef = new ExtensionFilter("XML file", "*.xml");
+                break;
+            case (".json"):
+            case ("json"):
+                ef = new ExtensionFilter("JSON file", "*.json");
+                break;
+            default:
+                break;
+        }
+        if (ef != null) {
+            fileChooser.getExtensionFilters().addAll(ef);
         }
 
         //user chooses file
