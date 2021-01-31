@@ -7,9 +7,13 @@ package Manifest;
 
 import VERSCommon.AppError;
 import VERSCommon.AppFatal;
+import com.sun.javafx.scene.control.skin.TextFieldSkin;
+import com.sun.javafx.scene.control.skin.TextInputControlSkin;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
 import javafx.application.HostServices;
@@ -17,15 +21,19 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Control;
+import javafx.scene.control.Skin;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
@@ -33,6 +41,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.InputMethodEvent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -136,17 +146,46 @@ public class FXMLSetupRunController extends BaseManifestController implements In
 
         // set up behavoir of create GUI elements
         createActorTF.focusedProperty().addListener(new FocusLostListener("createActorTF"));
+        createActorTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
         createIdentifierTF.focusedProperty().addListener(new FocusLostListener("createIdentifierTF"));
+        createIdentifierTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
         createCommentTA.focusedProperty().addListener(new FocusLostListener("createCommentTA"));
-        createDirectoryTF.focusedProperty().addListener(new FocusLostListener("createDirectoryTF"));
+        createCommentTA.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.TAB);
+        });createDirectoryTF.focusedProperty().addListener(new FocusLostListener("createDirectoryTF"));
+        createDirectoryTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
         createManifestTF.focusedProperty().addListener(new FocusLostListener("createManifestTF"));
+        createManifestTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
 
         // set up behavoir of verify GUI elements
         verifyActorTF.focusedProperty().addListener(new FocusLostListener("verifyActorTF"));
+        verifyActorTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
         verifyIdentifierTF.focusedProperty().addListener(new FocusLostListener("verifyIdentifierTF"));
+        verifyIdentifierTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
         verifyCommentTA.focusedProperty().addListener(new FocusLostListener("verifyCommentTA"));
+        verifyCommentTA.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.TAB);
+        });
         verifyDirectoryTF.focusedProperty().addListener(new FocusLostListener("verifyDirectoryTF"));
+        verifyDirectoryTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
         verifyManifestTF.focusedProperty().addListener(new FocusLostListener("verifyManifestTF"));
+        verifyManifestTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
 
         hashAlgorithmCB.getItems().addAll("SHA-1", "SHA-256", "SHA-384", "SHA-512");
         hashAlgorithmCB.valueProperty().addListener((ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
@@ -160,7 +199,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         debugCB.selectedProperty().addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
             job.debug = newValue;
         });
-        //handleOutputFolderChangeAction(null);
 
         // synchronise GUI with values in job
         job = new Job();
@@ -182,7 +220,21 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         updateCreateButtonState();
     }
 
-    public void shutdown() {
+    /**
+     * Traverse to the next node in the traversal tree.
+     * WARNING. It appears that skin.getBehavior() is not supported long term...
+     * @param event
+     * @param key 
+     */
+    private void traverseToNext(KeyEvent event, KeyCode key) {
+        if (event.getCode().equals(key)) {
+            Node node = (Node) event.getSource();
+            TextInputControlSkin skin = (TextInputControlSkin) ((Control) node).getSkin();
+            skin.getBehavior().traverseNext();
+        }
+    }
+
+public void shutdown() {
         if (progressStage != null) {
             progressStage.close();
         }
@@ -449,22 +501,6 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         updateCreateButtonState();
     }
 
-    /**
-     * User has pressed the 'Browse' button to select a directory to include in
-     * Manifest
-     */
-    private void dirBrowseB(ActionEvent event) {
-        File f;
-
-        f = browseForDirectory("Select directory to include", null);
-        if (f == null) {
-            return;
-        }
-
-        job.directory = f.toPath();
-        updateCreateButtonState();
-    }
-
     /*
      * User has changed the manifest file
      */
@@ -477,23 +513,64 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     }
 
     private void manifestChange(String id) {
+        Path fn;
+        String n;
+        int i;
+        Alert a;
+        String s;
+
+        // get path for manifest
         switch (id) {
             case ("createManifestTF"):
-                job.manifest = Paths.get(createManifestTF.getText());
+                s = createManifestTF.getText();
+                verifyManifestTF.setText(s);
                 break;
             case ("verifyManifestTF"):
-                job.manifest = Paths.get(verifyManifestTF.getText());
+                s = verifyManifestTF.getText();
+                createManifestTF.setText(s);
                 break;
             default:
-                break;
+                return;
         }
-        createManifestTF.setText(job.manifest.toString());
-        verifyManifestTF.setText(job.manifest.toString());
+
+        // an empty text field?
+        if (s == null || s.trim().equals("")) {
+            job.manifest = null;
+            return;
+        }
+
+        // turn the text field into a Path
+        job.manifest = Paths.get(s);
+
+        // sanity check
+        if (job.manifest == null || (fn = job.manifest.getFileName()) == null) {
+            a = new Alert(Alert.AlertType.ERROR, "Internal error (should not happen). The manifest file name was converted into a null path");
+            a.showAndWait();
+            return;
+        }
+
+        // check that the file name represents an XML file
+        n = fn.toString();
+        if ((i = n.lastIndexOf(".")) == -1) {
+            a = new Alert(Alert.AlertType.ERROR, "The manifest must be an XML file (i.e. have an '.xml' extension)");
+            a.showAndWait();
+            return;
+        }
+        if (i == 0) {
+            a = new Alert(Alert.AlertType.ERROR, "The manifest must have a file name (i.e. have something before the '.xml' extension)");
+            a.showAndWait();
+            return;
+        }
+        if (!n.substring(i).toLowerCase().equals(".xml")) {
+            a = new Alert(Alert.AlertType.ERROR, "The manifest must be an XML file (i.e. have an '.xml' extension)");
+            a.showAndWait();
+            return;
+        }
         updateCreateButtonState();
     }
 
     /*
-     * User has browsed for a new manifest
+     * User has opted to browse for a new manifest
      */
     @FXML
     private void manifestBrowse(ActionEvent event) {
@@ -524,32 +601,65 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     }
 
     /*
-     * User has browsed for a new root directory
+     * User has directly entered a new file path in the directory text field
      */
     @FXML
     private void directoryChange(ActionEvent event) {
         TextField tf;
 
+        System.out.println("Change");
         tf = (TextField) event.getSource();
         directoryChange(tf.getId());
     }
 
     private void directoryChange(String id) {
+        String s;
+        Alert a;
+
+        s = "";
         switch (id) {
             case ("createDirectoryTF"):
-                job.directory = Paths.get(createDirectoryTF.getText());
+                s = createDirectoryTF.getText();
+                verifyDirectoryTF.setText(s);
                 break;
             case ("verifyDirectoryTF"):
-                job.directory = Paths.get(verifyDirectoryTF.getText());
+                s = verifyDirectoryTF.getText();
+                createDirectoryTF.setText(s);
                 break;
             default:
                 break;
         }
-        createDirectoryTF.setText(job.directory.toString());
-        verifyDirectoryTF.setText(job.directory.toString());
+
+        // an empty text field?
+        if (s == null || s.trim().equals("")) {
+            job.manifest = null;
+            return;
+        }
+
+        // turn the text field into a Path
+        job.directory = Paths.get(s);
+        
+        // sanity check
+        if (job.directory == null) {
+            a = new Alert(Alert.AlertType.ERROR, "Internal error (should not happen). The directory name was converted into a null path");
+            a.showAndWait();
+            return;
+        }
+
+
+        // check that the directory exists
+        if (!Files.isDirectory(job.directory)) {
+            a = new Alert(Alert.AlertType.ERROR, "The source directory must exist and be a directory");
+            a.showAndWait();
+            return;
+        }
         updateCreateButtonState();
     }
 
+    /**
+     * User has pressed the 'Browse' button to select the source directory to
+     * include in the manifest
+     */
     @FXML
     private void dirsBrowse(ActionEvent event) {
         File f;
