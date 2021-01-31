@@ -35,9 +35,7 @@ public class BaseManifestController {
 
     protected Stage preloaderStage;
     FXMLPreloaderController preloaderController;
-
     private HostServices hostServices;
-
     protected String helpHashTag;
 
     @FXML
@@ -267,8 +265,16 @@ public class BaseManifestController {
         return chosenFile;
     }
 
+    /**
+     * Popup an alert and stop until user acknowledges it
+     * 
+     * @param title
+     * @param headerText
+     * @param message
+     * @return 
+     */
     public Alert alertWarning(String title, String headerText, String message) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
+        Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(headerText);
         alert.setContentText(message);
