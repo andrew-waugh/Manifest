@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>File Harvest Help</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+    </head>
+    <body>
+        <div class="container">
+            <p>This program creates VEOs out of one or more directories in a filesystem</p>
+
+            <h3>Main pane</h3>
+            <p>The main controls are located on this pane. The controls
+			are as follows:</p>
+			<ul>
+			<li><b>Directories to Harvest</b> This is an area where the directories to capture are entered.
+			Each directory entered will result in a single VEO. The VEO will
+			contain the contents of that directory, and the contents of the
+			subordinate directories. The 'Browse' button on the right is used
+			to add directories, and the 'Delete' button to remove them.</li>
+			<li><b>Template Directory</b> This field specifies the directory that contains the
+			templates used to construct the VEO. Normally, a standard template
+			directory should be used. If necessary, the 'Browse' button on
+			the right can be used to select a new directory.</li>
+			<li><b>Output Directory</b> This field specifies the directory
+			where the VEOs are to be created. The 'Browse' button on
+			the right can be used to select a new directory.</li>
+			<li><b>PFX file</b> This field specifies the PFX file used to
+			sign the VEO. The 'Browse' button on
+			the right can be used to select a new directory.</li>
+			<li><b>PFX Password</b> This field password for the PFX file used to
+			sign the VEO.</li>
+			</ul>
+            <h3>Exc Folders pane</h3>
+            <p>This pane is used to select directories and/or files that
+			should not be harvested. The 'Browse' button on the right is
+			used to add directories or files, and the 'Delete' button to
+			remove them</p>
+            <h3>Exc Files pane</h3>
+            <p>This pane is used to select patterns directories and/or files that
+			should not be harvested. For example, the pattern '*.tmp'
+			will exclude any files that have a name ending in '.tmp'.
+			There is one pattern per line.</p>
+            <h3>Advanced pane</h3>
+            <p>This pane is used to control advanced functionality; in
+			particular the level of logging and the hash algorithm to be
+			used.</p>
+        </div>        
+    </body>
+</html>
