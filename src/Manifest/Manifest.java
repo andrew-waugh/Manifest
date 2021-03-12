@@ -338,6 +338,7 @@ public class Manifest implements XMLConsumer {
             if (job.verbose) {
                 LOG.log(Level.INFO, "***Processing directory ''{0}''", new Object[]{p.normalize().toString()});
             }
+            ds = null;
             try {
                 ds = Files.newDirectoryStream(p);
                 for (Path p1 : ds) {
@@ -346,9 +347,16 @@ public class Manifest implements XMLConsumer {
                         break;
                     }
                 }
-                ds.close();
             } catch (IOException e) {
                 LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{p.normalize().toString(), e.getMessage()});
+            } finally {
+                if (ds != null) {
+                    try {
+                        ds.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
             }
             return cancelled;
         }
@@ -380,13 +388,14 @@ public class Manifest implements XMLConsumer {
 
     /**
      * Check a manifest
-     * 
-     * @param objectsExpected Total objects expected in manifest (-1 if not known)
+     *
+     * @param objectsExpected Total objects expected in manifest (-1 if not
+     * known)
      * @throws VERSCommon.AppFatal
      * @throws VERSCommon.AppError
      */
     public void checkManifest(int objectsExpected) throws AppFatal, AppError {
-        
+
         // check parameters
         if (job.manifest == null) {
             throw new AppError("Passed null manifest to be processed");
