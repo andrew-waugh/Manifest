@@ -21,6 +21,7 @@ import javafx.stage.Stage;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
 import javafx.scene.control.Control;
 import javafx.scene.control.Tooltip;
 import javafx.stage.FileChooser.ExtensionFilter;
@@ -129,21 +130,23 @@ public class BaseManifestController {
      * Browse for a directory
      *
      * @param title title of browse window
-     * @param initialDir initial directory (might be null)
+     * @param dir initial directory (might be null)
      * @return selected directory (initial directory if none selected)
      */
-    protected File browseForDirectory(String title, File initialDir) {
+    protected File browseForDirectory(String title, Path dir) {
         DirectoryChooser dirChooser;
-        File selectedDir;
+        File initialDir, selectedDir;
 
         // sanity check...
-        if (initialDir == null && baseDirectory == null) {
+        if (dir == null && baseDirectory == null) {
             return null;
         }
 
         // if initialDir not specified, use the last directory navigated to
-        if (initialDir == null) {
+        if (dir == null) {
             initialDir = baseDirectory;
+        } else {
+            initialDir = dir.toFile();
         }
 
         // if the directory doesn't exist, go up until we get to the root or one does exist
@@ -177,15 +180,16 @@ public class BaseManifestController {
     /**
      * Utility routines to wrap browseFile().
      *
-     * @param title
-     * @param file
+     * @param title Title of file dialog
+     * @param fileFormat file formats accepted
+     * @param file an initial file to select
      * @return
      */
-    protected File browseForOpenFile(String title, String fileFormat, File file) {
+    protected File browseForOpenFile(String title, String fileFormat, Path file) {
         return browseFile(title, file, fileFormat, true);
     }
 
-    protected File browseForSaveFile(String title, String fileFormat, File file) {
+    protected File browseForSaveFile(String title, String fileFormat, Path file) {
         return browseFile(title, file, fileFormat, false);
     }
 
@@ -199,7 +203,7 @@ public class BaseManifestController {
      * file
      * @return selected file
      */
-    protected File browseFile(String title, File file, String fileFormat, boolean openFile) {
+    protected File browseFile(String title, Path file, String fileFormat, boolean openFile) {
         FileChooser fileChooser;
         File parentFile;
         String fileName;
@@ -215,10 +219,10 @@ public class BaseManifestController {
         fileChooser.setTitle(title);
 
         if (file != null) {
-            if ((fileName = file.getName()) != null) {
+            if ((fileName = file.getFileName().toString()) != null) {
                 fileChooser.setInitialFileName(fileName);
             }
-            parentFile = file.getParentFile();
+            parentFile = file.toFile().getParentFile();
             if (parentFile != null && parentFile.exists()) {
                 fileChooser.setInitialDirectory(parentFile);
             } else if (baseDirectory != null) {
@@ -242,6 +246,10 @@ public class BaseManifestController {
             case (".json"):
             case ("json"):
                 ef = new ExtensionFilter("JSON file", "*.json");
+                break;
+            case (".txt"):
+            case ("txt"):
+                ef = new ExtensionFilter("Text file", "*.txt");
                 break;
             default:
                 break;
@@ -267,11 +275,11 @@ public class BaseManifestController {
 
     /**
      * Popup an alert and stop until user acknowledges it
-     * 
+     *
      * @param title
      * @param headerText
      * @param message
-     * @return 
+     * @return
      */
     public Alert alertWarning(String title, String headerText, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);

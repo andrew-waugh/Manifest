@@ -7,30 +7,30 @@ package Manifest;
 
 import VERSCommon.AppError;
 import VERSCommon.AppFatal;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.ResourceBundle;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.TimeZone;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import javafx.application.HostServices;
 import javafx.application.Platform;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ObjectPropertyBase;
-import javafx.beans.property.Property;
-import javafx.beans.property.StringProperty;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -44,9 +44,9 @@ import org.json.simple.JSONObject;
  * manifest. It consists of three inter-related classes - the
  * FXMLProgressController itself which runs the GUI screen, and two internal
  * classes: ManifestService and DoManifestTask. These implement a thread that
- * manage the actual work. The separate thread allows the GUI to remain responsive
- * while the work is actually being carried out.
- * 
+ * manage the actual work. The separate thread allows the GUI to remain
+ * responsive while the work is actually being carried out.
+ *
  * Note this class doesn't actually do the work - it handles communication
  * between the thread that manages the GUI and the thread that does the work.
  *
@@ -66,19 +66,23 @@ public class FXMLProgressController extends BaseManifestController {
     private Label currentlyProcessingL;
     @FXML
     private Label countL;
+    @FXML
+    private Button logB;
 
     Job job;                    // information shared between scenes
     HostServices hostServices;
     ManifestService cms;        // The service to handle processing
-    
+    boolean finished;           // true if the run has completed, but the window is not closed
+
     static String defaultText = "Stage 2 processing - no errors or warnings generated yet\n";
 
     /**
-     * Initializes the controller class. This is called when the GUI screen
-     * is created.
+     * Initializes the controller class. This is called when the GUI screen is
+     * created.
      */
     public void initialize() {
         processedPB.setProgress(0);
+        finished = false;
 
         try {
             initTooltips();
@@ -110,7 +114,13 @@ public class FXMLProgressController extends BaseManifestController {
 
         this.job = job;
         this.baseDirectory = baseDirectory;
-        
+        finished = false;
+
+        // if log file is to be generated, set the button
+        if (job.logFile != null) {
+            logB.setText("Logging to: " + job.logFile.toString());
+        }
+
         // start the service that will do the work (which can be reused for multiple tasks)
         cms = new ManifestService();
         cms.start(); // start the service
@@ -125,12 +135,93 @@ public class FXMLProgressController extends BaseManifestController {
     }
 
     /**
+     * Callback if the user presses the log button
+     *
+     * @param event
+     */
+    @FXML
+    private void handleLogAction(ActionEvent event) {
+        File f;
+
+        // ask user what file to log to
+        f = browseForSaveFile("Select log file", ".txt", job.logFile);
+        if (f == null) {
+            return;
+        }
+        job.logFile = f.toPath();
+        logB.setText("Logging to: " + job.logFile.toString());
+
+        // if the run has finished, log the results
+        if (finished) {
+            logResults();
+        }
+    }
+
+    /**
      * Called when it is necessary to close this window
      */
     public void shutdown() {
         cms.cancel();
         final Stage stage = (Stage) rootAP.getScene().getWindow();
         stage.close();
+    }
+
+    public void logResults() {
+        ObservableList<CharSequence> ol;
+        FileWriter fw;
+        BufferedWriter bw;
+        TimeZone tz;
+        SimpleDateFormat sdf;
+
+        int i;
+
+        // if not logging, just return
+        if (job.logFile == null) {
+            return;
+        }
+
+        // if logging, get all the text from the warning text area and save it
+        // to the specified file
+        try {
+            ol = warningTA.getParagraphs();
+            fw = new FileWriter(job.logFile.toFile());
+            bw = new BufferedWriter(fw);
+
+            bw.write("********************************************************************************\n");
+            bw.write("*                                                                              *\n");
+            if (job.task == Job.Task.CREATE) {
+                bw.write("*                   M A N I F E S T   C R E A T I O N                      *\n");
+            } else {
+                bw.write("*               M A N I F E S T   V E R I F I C A T I O N                  *\n");
+            }
+            bw.write("*                                                                              *\n");
+            bw.write("*                              Version 0.2 (2021)                              *\n");
+            bw.write("*                                                                              *\n");
+            bw.write("********************************************************************************\n");
+            bw.write("\n");
+            bw.write("Run: ");
+            tz = TimeZone.getTimeZone("GMT+10:00");
+            sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss+10:00");
+            sdf.setTimeZone(tz);
+            bw.write(sdf.format(new Date()));
+            bw.write("\n");
+            bw.write(job.toString());
+            bw.write("\n");
+            bw.write("********************************************************************************\n");
+            bw.write("Output:\n");
+            bw.write("********************************************************************************\n");
+            for (i = 0; i < ol.size(); i++) {
+                bw.write(ol.get(i).toString());
+                bw.write("\n");
+            }
+            bw.write("********************************************************************************\n");
+
+            bw.close();
+            fw.close();
+        } catch (IOException ioe) {
+            System.out.println(ioe.toString());
+        }
+        logB.setText("Logged to: " + job.logFile.toString());
     }
 
     /**
@@ -164,18 +255,20 @@ public class FXMLProgressController extends BaseManifestController {
                         }
                         results.clear();
                     }
+                    logResults();
+                    finished = true;
                 }
             });
             return manifestTask;
         }
-        
+
         // the user requested to cancel the job
         /*
         @Override
         protected void cancelled() {
             System.out.println("We've been cancelled!");
         }
-        */
+         */
     }
 
     /**
@@ -208,7 +301,7 @@ public class FXMLProgressController extends BaseManifestController {
          * Actually process files. The parameters of the work to be performed
          * were provided when the task was created; the GUI fields to be updated
          * during the processing were also passed when the job was created.
-         * 
+         *
          * Updates to the calling GUI are scheduled via 'runLater()' as these
          * are executed in a different thread. Note that the 'runLater()' code
          * copies all of the current results and then clears the results.
@@ -255,7 +348,7 @@ public class FXMLProgressController extends BaseManifestController {
                 if (job.task == Job.Task.CREATE) {
                     manifest.createManifest();
                 } else if (job.task == Job.Task.VERIFY) {
-                    manifest.checkManifest();
+                    manifest.checkManifest(totalObjects);
                 }
             } catch (AppFatal | AppError af) {
                 System.out.println("Processing manifest error: " + af.getMessage());
@@ -348,8 +441,8 @@ public class FXMLProgressController extends BaseManifestController {
             }
         } else if (Files.isRegularFile(f)) {
             Platform.runLater(() -> {
-                    currentlyProcessingL.setText(f.getFileName().toString());
-                });
+                currentlyProcessingL.setText(f.getFileName().toString());
+            });
             c++;
         }
         return c;

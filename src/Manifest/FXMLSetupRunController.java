@@ -7,7 +7,6 @@ package Manifest;
 
 import VERSCommon.AppError;
 import VERSCommon.AppFatal;
-import com.sun.javafx.scene.control.skin.TextFieldSkin;
 import com.sun.javafx.scene.control.skin.TextInputControlSkin;
 import java.io.File;
 import java.io.IOException;
@@ -21,7 +20,6 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -33,7 +31,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
-import javafx.scene.control.Skin;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
@@ -109,7 +106,15 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     @FXML
     private Button verifyDirBrowseB;
     @FXML
-    private CheckBox updateManifestCB;
+    private TextField createLogFileTF;
+    @FXML
+    private Button createLogFileBrowseB;
+    @FXML
+    private TextField verifyLogFileTF;
+    @FXML
+    private Button verifyLogFileBrowseB;
+    @FXML
+    private CheckBox verifyHashCB;
 
     //private FXMLCreateSummaryController summaryController;
     /**
@@ -156,8 +161,13 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         createCommentTA.focusedProperty().addListener(new FocusLostListener("createCommentTA"));
         createCommentTA.setOnKeyPressed((KeyEvent event) -> {
             traverseToNext(event, KeyCode.TAB);
-        });createDirectoryTF.focusedProperty().addListener(new FocusLostListener("createDirectoryTF"));
+        });
+        createDirectoryTF.focusedProperty().addListener(new FocusLostListener("createDirectoryTF"));
         createDirectoryTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
+        createLogFileTF.focusedProperty().addListener(new FocusLostListener("createLogFileTF"));
+        createLogFileTF.setOnKeyPressed((KeyEvent event) -> {
             traverseToNext(event, KeyCode.ENTER);
         });
         createManifestTF.focusedProperty().addListener(new FocusLostListener("createManifestTF"));
@@ -182,6 +192,10 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         verifyDirectoryTF.setOnKeyPressed((KeyEvent event) -> {
             traverseToNext(event, KeyCode.ENTER);
         });
+        verifyLogFileTF.focusedProperty().addListener(new FocusLostListener("verifyLogFileTF"));
+        verifyLogFileTF.setOnKeyPressed((KeyEvent event) -> {
+            traverseToNext(event, KeyCode.ENTER);
+        });
         verifyManifestTF.focusedProperty().addListener(new FocusLostListener("verifyManifestTF"));
         verifyManifestTF.setOnKeyPressed((KeyEvent event) -> {
             traverseToNext(event, KeyCode.ENTER);
@@ -190,6 +204,10 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         hashAlgorithmCB.getItems().addAll("SHA-1", "SHA-256", "SHA-384", "SHA-512");
         hashAlgorithmCB.valueProperty().addListener((ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
             job.hashAlg = newValue;
+        });
+        verifyHashCB.setIndeterminate(false);
+        verifyHashCB.selectedProperty().addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+            job.verifyHash = newValue;
         });
         verboseCB.setIndeterminate(false);
         verboseCB.selectedProperty().addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
@@ -254,6 +272,8 @@ public void shutdown() {
         createTooltip(createDirBrowseB, (String) json.get("browse"));
         createTooltip(createManifestTF, (String) json.get("manifest"));
         createTooltip(createManifestBrowseB, (String) json.get("browse"));
+        createTooltip(createLogFileTF, (String) json.get("logFile"));
+        createTooltip(createLogFileBrowseB, (String) json.get("browse"));
         createTooltip(verifyActorTF, (String) json.get("actor"));
         createTooltip(verifyIdentifierTF, (String) json.get("identifier"));
         createTooltip(verifyCommentTA, (String) json.get("comment"));
@@ -261,6 +281,9 @@ public void shutdown() {
         createTooltip(verifyDirBrowseB, (String) json.get("browse"));
         createTooltip(verifyManifestTF, (String) json.get("manifest"));
         createTooltip(verifyManifestBrowseB, (String) json.get("browse"));
+        createTooltip(verifyLogFileTF, (String) json.get("logFile"));
+        createTooltip(verifyLogFileBrowseB, (String) json.get("browse"));
+        createTooltip(verifyHashCB, (String) json.get("verifyHash"));
         createTooltip(hashAlgorithmCB, (String) json.get("hashAlgorithm"));
         createTooltip(verboseCB, (String) json.get("verboseOutput"));
         createTooltip(debugCB, (String) json.get("debugOutput"));
@@ -357,6 +380,13 @@ public void shutdown() {
             verifyDirectoryTF.setText(s);
             verifyDirectoryTF.positionCaret(s.length());
         }
+        if (job.logFile != null) {
+            s = job.logFile.toString();
+            createLogFileTF.setText(s);
+            createLogFileTF.positionCaret(s.length());
+            verifyLogFileTF.setText(s);
+            verifyLogFileTF.positionCaret(s.length());
+        }
         if (job.manifest != null) {
             s = job.manifest.toString();
             createManifestTF.setText(s);
@@ -368,7 +398,8 @@ public void shutdown() {
             hashAlgorithmCB.getSelectionModel().select(job.hashAlg);
         }
         verboseCB.setSelected(job.verbose);
-        verboseCB.setSelected(job.debug);
+        debugCB.setSelected(job.debug);
+        verifyHashCB.setSelected(job.verifyHash);
     }
 
     /**
@@ -580,10 +611,10 @@ public void shutdown() {
         f = null;
         switch (((Button) event.getSource()).getId()) {
             case ("createManifestBrowseB"):
-                f = browseForSaveFile("Select manifest", ".xml", null);
+                f = browseForSaveFile("Select manifest", ".xml", job.manifest);
                 break;
             case ("verifyManifestBrowseB"):
-                f = browseForOpenFile("Select manifest", ".xml", null);
+                f = browseForOpenFile("Select manifest", ".xml", job.manifest);
                 break;
             default:
                 break;
@@ -607,7 +638,6 @@ public void shutdown() {
     private void directoryChange(ActionEvent event) {
         TextField tf;
 
-        System.out.println("Change");
         tf = (TextField) event.getSource();
         directoryChange(tf.getId());
     }
@@ -632,7 +662,7 @@ public void shutdown() {
 
         // an empty text field?
         if (s == null || s.trim().equals("")) {
-            job.manifest = null;
+            job.directory = null;
             return;
         }
 
@@ -666,7 +696,7 @@ public void shutdown() {
         String s;
         Button b;
 
-        f = browseForDirectory("Select root directory", null);
+        f = browseForDirectory("Select root directory", job.directory);
         if (f == null) {
             return;
         }
@@ -676,6 +706,82 @@ public void shutdown() {
         createDirectoryTF.positionCaret(s.length());
         verifyDirectoryTF.setText(s);
         verifyDirectoryTF.positionCaret(s.length());
+        updateCreateButtonState();
+    }
+    
+    /*
+     * User has directly entered a new file path in the directory text field
+     */
+    @FXML
+    private void logFileChange(ActionEvent event) {
+        TextField tf;
+
+        tf = (TextField) event.getSource();
+        logFileChange(tf.getId());
+    }
+
+    private void logFileChange(String id) {
+        String s;
+        Alert a;
+
+        s = "";
+        switch (id) {
+            case ("createLogFileTF"):
+                s = createLogFileTF.getText();
+                verifyDirectoryTF.setText(s);
+                break;
+            case ("verifyLogFileTF"):
+                s = verifyLogFileTF.getText();
+                createLogFileTF.setText(s);
+                break;
+            default:
+                break;
+        }
+
+        // an empty text field?
+        if (s == null || s.trim().equals("")) {
+            job.logFile = null;
+            return;
+        }
+
+        // turn the text field into a Path
+        job.logFile = Paths.get(s);
+        
+        // sanity check
+        if (job.logFile == null) {
+            a = new Alert(Alert.AlertType.ERROR, "Internal error (should not happen). The directory name was converted into a null path");
+            a.showAndWait();
+            return;
+        }
+
+        // check that the directory exists
+        if (!Files.exists(job.logFile)) {
+            a = new Alert(Alert.AlertType.CONFIRMATION, "The log file already exists. Overwrite?");
+            a.showAndWait();
+            return;
+        }
+        updateCreateButtonState();
+    }
+
+    /**
+     * User has pressed the 'Browse' button to select the source directory to
+     * include in the manifest
+     */
+    @FXML
+    private void logFileBrowse(ActionEvent event) {
+        File f;
+        String s;
+
+        f = browseForSaveFile("Select log file", ".txt", job.logFile);
+        if (f == null) {
+            return;
+        }
+        job.logFile = f.toPath();
+        s = job.logFile.toString();
+        createLogFileTF.setText(s);
+        createLogFileTF.positionCaret(s.length());
+        verifyLogFileTF.setText(s);
+        verifyLogFileTF.positionCaret(s.length());
         updateCreateButtonState();
     }
 
@@ -703,17 +809,11 @@ public void shutdown() {
                     case "verifyActorTF":
                         actorChange("verifyActorTF");
                         break;
-                    case "updateActorTF":
-                        actorChange("updateActorTF");
-                        break;
                     case "createIdentifierTF":
                         identifierChange("createIdentifierTF");
                         break;
                     case "verifyIdentifierTF":
                         identifierChange("verifyIdentifierTF");
-                        break;
-                    case "updateIdentifierTF":
-                        identifierChange("updateIdentifierTF");
                         break;
                     case "createCommentTA":
                         commentChange("createCommentTA");
@@ -721,17 +821,11 @@ public void shutdown() {
                     case "verifyCommentTA":
                         commentChange("verifyCommentTA");
                         break;
-                    case "updateCommentTA":
-                        commentChange("updateCommentTA");
-                        break;
                     case "createManifestTF":
                         manifestChange("createManifestTF");
                         break;
                     case "verifyManifestTF":
                         manifestChange("verifyManifestTF");
-                        break;
-                    case "updateManifestTF":
-                        manifestChange("updateManifestTF");
                         break;
                     case "createDirectoryTF":
                         directoryChange("createDirectoryTF");
@@ -739,10 +833,12 @@ public void shutdown() {
                     case "verifyDirectoryTF":
                         directoryChange("verifyDirectoryTF");
                         break;
-                    case "updateDirectoryTF":
-                        directoryChange("updateDirectoryTF");
+                    case "createLogFileTF":
+                        logFileChange("createLogFileTF");
                         break;
-
+                    case "verifyLogFileTF":
+                        logFileChange("verifyLogFileTF");
+                        break;
                     default:
                         break;
                 }

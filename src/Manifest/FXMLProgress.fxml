@@ -17,13 +17,13 @@
     <children>
         <VBox AnchorPane.bottomAnchor="5.0" AnchorPane.leftAnchor="5.0" AnchorPane.rightAnchor="5.0" AnchorPane.topAnchor="5.0">
             <children>
-                <Label text="Errors and warnings:" VBox.vgrow="NEVER">
-                </Label>
+                <Label text="Errors and warnings:" VBox.vgrow="NEVER"/>
                 <TextArea fx:id="warningTA" prefHeight="300.0" prefWidth="600.0" VBox.vgrow="ALWAYS">
                     <VBox.margin>
                         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                     </VBox.margin>
                 </TextArea>
+                <Label text="Progress:" VBox.vgrow="NEVER"/>
                 <HBox VBox.vgrow="NEVER" maxHeight="25.0" minHeight="25.0" >
                     <children>
                         <Label text="Done up to: " />
@@ -36,6 +36,11 @@
                         <Label fx:id="countL" text="0/0"/>
                     </children>
                 </HBox>
+                <Button fx:id="logB" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleLogAction" text="Save the errors and warnings log">
+                    <VBox.margin>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                    </VBox.margin>
+                </Button>
                 <Button fx:id="finishB" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleCloseAction" text="Cancel processing or close"/>
             </children>
         </VBox>

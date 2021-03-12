@@ -39,6 +39,8 @@ public class Job {
     String identifier;  // identifier of this uplift (series/consignment/set)
     String hashAlg;     // hash algorithm to use
     String dateTimeCreated; // date and time the manifest was created
+    Path logFile;       // user requested a log file to be produced
+    boolean verifyHash; // if false do *NOT* verify the hash, only check that the file exists
 
     boolean verbose;    // true if verbose output
     boolean debug;      // true if debugging output
@@ -47,6 +49,13 @@ public class Job {
      * Constructor
      */
     public Job() {
+        setDefault();
+    }
+    
+    /**
+     * Set up the default job
+     */
+    protected void setDefault() {
         verbose = AppConfig.getCreateVerboseOutputDefault();
         debug = AppConfig.getCreateDebugModeDefault();
         task = Task.CREATE;
@@ -57,6 +66,8 @@ public class Job {
         identifier = null;
         dateTimeCreated = null;
         hashAlg = "SHA-1";
+        logFile = null;
+        verifyHash = true;
     }
 
     /**
@@ -69,6 +80,7 @@ public class Job {
         comment = null;
         identifier = null;
         dateTimeCreated = null;
+        logFile = null;
     }
 
     /**
@@ -147,9 +159,13 @@ public class Job {
         if (manifest != null) {
             j1.put("manifest", manifest.toString());
         }
+        if (logFile != null) {
+            j1.put("logfile", logFile.toString());
+        }
         if (hashAlg != null) {
             j1.put("hashAlgorithm", hashAlg);
         }
+        j1.put("verifyHash", verifyHash);
         j1.put("verboseReporting", verbose);
         j1.put("debugReporting", debug);
 
@@ -222,7 +238,12 @@ public class Job {
         FileReader fr;
         BufferedReader br;
         String s;
+        Boolean b;
 
+        // set up the default job
+        setDefault();
+        
+        // overwrite it with the saved job
         try {
             fr = new FileReader(file.toFile());
             br = new BufferedReader(fr);
@@ -259,13 +280,27 @@ public class Job {
         if ((s = (String) j1.get("comment")) != null) {
             comment = s;
         }
-        verbose = ((Boolean) j1.get("verboseReporting"));
-        debug = ((Boolean) j1.get("debugReporting"));
-        directory = Paths.get((String) j1.get("directory"));
+        if ((b = (Boolean) j1.get("verboseReporting")) != null) {
+            verbose = b;
+        }
+        if ((b = (Boolean) j1.get("debugReporting")) != null) {
+            debug = b;
+        }
+        if ((b = (Boolean) j1.get("verifyHash")) != null) {
+            verifyHash = b;
+        }
+        if ((s = (String) j1.get("directory")) != null) {
+            directory = Paths.get(s);
+        }
         if ((s = (String) j1.get("manifest")) != null) {
             manifest = Paths.get(s);
         }
-        hashAlg = (String) j1.get("hashAlgorithm");
+        if ((s = (String) j1.get("hashAlgorithm")) != null) {
+            hashAlg = s;
+        }
+        if ((s = (String) j1.get("logfile")) != null) {
+            logFile = Paths.get(s);
+        }
 
         try {
             br.close();
@@ -288,7 +323,12 @@ public class Job {
                 sb.append("update\n");
                 break;
             case VERIFY:
-                sb.append("verify\n");
+                sb.append("verify ");
+                if (!verifyHash) {
+                    sb.append("(only verify existance of file, DO NOT verify hash)\n");
+                } else {
+                    sb.append("(verify both existance and hash of file)\n");
+                }
                 break;
             case NOTSET:
                 sb.append("not set\n");
@@ -329,6 +369,11 @@ public class Job {
             sb.append("not set");
         }
         sb.append("'\n");
+        if (logFile != null) {
+            sb.append("Log File: '");
+            sb.append(logFile.toString());
+            sb.append("'\n");
+        }
         if (hashAlg != null) {
             sb.append("Hash Algorithm: '");
             sb.append(hashAlg);

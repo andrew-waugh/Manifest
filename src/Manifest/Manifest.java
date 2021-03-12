@@ -29,6 +29,7 @@
  */
 package Manifest;
 
+import Manifest.Job.Task;
 import VERSCommon.AppFatal;
 import VERSCommon.AppError;
 import VERSCommon.HandleElement;
@@ -46,6 +47,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,6 +63,7 @@ public class Manifest implements XMLConsumer {
     String userId;          // user performing the conversion
     FXMLProgressController.DoManifestTask reporter; // call back for reporting
     XMLParser xmlp;         // parser for XML manifest
+    int objectsExpected;    // total objects expected in manifest (-1 if not of interest)
 
     private final static Logger LOG = Logger.getLogger("Manifest.Manifest");
 
@@ -147,7 +150,7 @@ public class Manifest implements XMLConsumer {
      */
     private void configure(String args[]) throws AppFatal {
         int i;
-        String usage = "Manifest [-v] [-d] [-o <file>] [-g] [-i <file>] [-h <hashAlg>] directory";
+        String usage = "Manifest [-v] [-d] [-o <file>] [-i <file>] [-h <hashAlg>] [-nohash] directory";
 
         // hashFiles command line arguments
         i = 0;
@@ -186,7 +189,14 @@ public class Manifest implements XMLConsumer {
                         i++;
                         break;
 
-                    // '-i' specifies output manifest file
+                    // don't recalculate hash values when verifying
+                    case "-nohash":
+                        i++;
+                        job.verifyHash = false;
+                        i++;
+                        break;
+
+                    // '-o' specifies output manifest file
                     case "-o":
                         i++;
                         job.manifest = Paths.get(args[i]);
@@ -230,6 +240,9 @@ public class Manifest implements XMLConsumer {
         LOG.log(Level.INFO, "Hash algorithm is ''{0}''", job.hashAlg);
         LOG.log(Level.INFO, "User id to be logged: ''{0}''", new Object[]{userId});
         LOG.log(Level.INFO, "Creating a manifest? {0}", job.task);
+        if (job.task == Task.VERIFY) {
+            LOG.log(Level.INFO, "Verifying hash values? {0}", job.verifyHash);
+        }
     }
 
     /**
@@ -289,11 +302,12 @@ public class Manifest implements XMLConsumer {
         xmlc.includeElement("Comment", null, job.comment, false);
         xmlc.endElement("History", false);
         xmlc.startElement("Files", null, false);
-        cancelled = hashTheFiles(job.directory, xmlc);
+        cancelled = createHashes(job.directory, xmlc);
         if (cancelled) {
             return;
         }
         xmlc.endElement("Files", false);
+        // xmlc.includeElement("FileCount", null, Integer.toString(fileCount), false);
         xmlc.endXMLDoc();
     }
 
@@ -304,7 +318,7 @@ public class Manifest implements XMLConsumer {
      * @param p the file or directory to hashFiles
      * @param first this is the first entry in the directory
      */
-    private boolean hashTheFiles(Path p, XMLCreator xmlc) throws AppFatal {
+    private boolean createHashes(Path p, XMLCreator xmlc) throws AppFatal {
         DirectoryStream<Path> ds;
         String hash;
         boolean cancelled;
@@ -327,7 +341,7 @@ public class Manifest implements XMLConsumer {
             try {
                 ds = Files.newDirectoryStream(p);
                 for (Path p1 : ds) {
-                    cancelled = hashTheFiles(p1, xmlc);
+                    cancelled = createHashes(p1, xmlc);
                     if (cancelled) {
                         break;
                     }
@@ -348,7 +362,7 @@ public class Manifest implements XMLConsumer {
                 xmlc.endElement("f", true);
                 LOG.log(Level.INFO, "Hashed ''{0}'': ''{1}''", new Object[]{p.normalize().toString(), hash});
             } catch (AppError ae) {
-                LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{p.normalize().toString(), ae.getMessage()});
+                LOG.log(Level.WARNING, "Failed to process file ''{0}'': {1}", new Object[]{p.normalize().toString(), ae.getMessage()});
             }
         } else {
             LOG.log(Level.INFO, "***Ignoring directory ''{0}''", new Object[]{p.normalize().toString()});
@@ -366,12 +380,19 @@ public class Manifest implements XMLConsumer {
 
     /**
      * Check a manifest
+     * 
+     * @param objectsExpected Total objects expected in manifest (-1 if not known)
+     * @throws VERSCommon.AppFatal
+     * @throws VERSCommon.AppError
      */
-    public void checkManifest() throws AppFatal, AppError {
+    public void checkManifest(int objectsExpected) throws AppFatal, AppError {
+        
         // check parameters
         if (job.manifest == null) {
             throw new AppError("Passed null manifest to be processed");
         }
+        this.objectsExpected = objectsExpected;
+        fileCount = 0;
 
         // parse it
         oldDetails = new Job();
@@ -419,6 +440,7 @@ public class Manifest implements XMLConsumer {
             case "Manifest/Files/f":      // detail of each file
                 file = null;
                 hashValue = null;
+                fileCount++;
                 break;
             case "Manifest":                 // manifest
             case "Manifest/History":
@@ -474,6 +496,11 @@ public class Manifest implements XMLConsumer {
                     throw new SAXException(ae.getMessage());
                 }
                 break;
+            case "Manifest":
+                if (objectsExpected != -1 && fileCount != objectsExpected) {
+                    LOG.log(Level.SEVERE, "Number of files in manifest ({0}) did not match files in specified directory ({1})", new Object[]{fileCount, objectsExpected});
+                }
+                break;
             default:
                 break;
         }
@@ -487,11 +514,15 @@ public class Manifest implements XMLConsumer {
         actualFile = job.directory.resolve(partialFile);
         // System.out.println("Processing... '"+job.directory.toString()+"' '" + partialFile.toString() + "' '"+actualFile.toString()+"' hash " + hash);
         if (Files.exists(actualFile)) {
-            recalcHash = hashFile(actualFile);
-            if (!recalcHash.equals(hash)) {
-                LOG.log(Level.SEVERE, "File ''{0}'' is corrupt: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
+            if (job.verifyHash) {
+                recalcHash = hashFile(actualFile);
+                if (!recalcHash.equals(hash)) {
+                    LOG.log(Level.SEVERE, "File ''{0}'' is corrupt: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
+                } else {
+                    LOG.log(Level.INFO, "File ''{0}'' passed: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
+                }
             } else {
-                LOG.log(Level.INFO, "File ''{0}'' passed: Recorded hash ''{1}'' Calculated hash ''{2}''", new Object[]{actualFile.toString(), hash, recalcHash});
+                LOG.log(Level.INFO, "File ''{0}'' passed (Hash NOT checked)", new Object[]{actualFile.toString()});
             }
         } else {
             LOG.log(Level.SEVERE, "File ''{0}'' is in manifest, but is not present", new Object[]{actualFile.toString()});
@@ -584,7 +615,7 @@ public class Manifest implements XMLConsumer {
             // if (m.createManifest) {
             // m.createManifest();
             // } else {
-            m.checkManifest();
+            m.checkManifest(-1);
             //}
             m.close();
             // tp.stressTest(1000);
