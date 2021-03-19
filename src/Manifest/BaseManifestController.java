@@ -66,12 +66,12 @@ public class BaseManifestController {
         try {
             fileReader = new FileReader(tooltipsFile);
         } catch (FileNotFoundException e) {
-            throw new AppFatal("Tooltips file not found: " + e.getMessage());
+            throw new AppFatal("Tooltips file not found: " + e.toString());
         }
         try {
             allJson = (JSONObject) parser.parse(fileReader);
         } catch (IOException | ParseException e) {
-            throw new AppFatal("Failed reading or parsing Tooltips file: " + e.getMessage());
+            throw new AppFatal("Failed reading or parsing Tooltips file: " + e.toString());
         }
         try {
             fileReader.close();

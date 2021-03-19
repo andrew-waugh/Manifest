@@ -55,7 +55,7 @@ public class LogHandler extends Handler {
     
     public void writeLog(LogRecord logRecord) {
         String str = logRecord.getLevel() + ": ";
-        str += logRecord.getMessage();
+        str += logRecord.toString();
         
         try {
             target.appendText(str + "\n");

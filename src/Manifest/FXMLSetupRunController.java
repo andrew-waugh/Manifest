@@ -230,7 +230,7 @@ public class FXMLSetupRunController extends BaseManifestController implements In
         try {
             initTooltips();
         } catch (AppFatal af) {
-            System.err.println(af.getMessage());
+            System.err.println(af.toString());
         }
 
         // initTextFieldList();
@@ -417,7 +417,7 @@ public void shutdown() {
         try {
             root = (Parent) fxmlLoader.load();
         } catch (IOException ioe) {
-            System.err.println("Couldn't get the root window when opening help window: " + ioe.getMessage());
+            System.err.println("Couldn't get the root window when opening help window: " + ioe.toString());
             return;
         }
 

@@ -126,7 +126,7 @@ public class Job {
             fw = new FileWriter(file.toFile());
             bw = new BufferedWriter(fw);
         } catch (IOException ioe) {
-            throw new AppError("Failed reading Job file: " + ioe.getMessage());
+            throw new AppError("Failed reading Job file: " + ioe.toString());
         }
 
         j1 = new JSONObject();
@@ -172,7 +172,7 @@ public class Job {
         try {
             bw.write(prettyPrintJSON(j1.toString()));
         } catch (IOException ioe) {
-            throw new AppError("Failed trying to write Job file: " + ioe.getMessage());
+            throw new AppError("Failed trying to write Job file: " + ioe.toString());
         }
         try {
             bw.close();
@@ -251,7 +251,7 @@ public class Job {
         } catch (ParseException pe) {
             throw new AppError("Failed parsing Job file: " + pe.toString());
         } catch (IOException ioe) {
-            throw new AppError("Failed reading Job file: " + ioe.getMessage());
+            throw new AppError("Failed reading Job file: " + ioe.toString());
         }
 
         if ((s = (String) j1.get("task")) != null) {

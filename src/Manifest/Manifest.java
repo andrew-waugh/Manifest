@@ -47,7 +47,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -119,6 +118,11 @@ public class Manifest implements XMLConsumer {
         LOG.addHandler(hdlr);
         System.setProperty("java.util.logging.SimpleFormatter.format", "%5$s");
         LOG.setLevel(Level.SEVERE);
+        if (job.verbose) {
+            LOG.setLevel(Level.INFO);
+        } else if (job.debug) {
+            LOG.setLevel(Level.FINE);
+        }
 
         // set up global variables from job
         this.job = job;
@@ -268,7 +272,7 @@ public class Manifest implements XMLConsumer {
                 try {
                     Files.createDirectory(p);
                 } catch (IOException ioe) {
-                    throw new AppFatal(classname, 9, type + " '" + p.toAbsolutePath().toString() + "' does not exist and could not be created: " + ioe.getMessage());
+                    throw new AppFatal(classname, 9, type + " '" + p.toAbsolutePath().toString() + "' does not exist and could not be created: " + ioe.toString());
                 }
             }
         }
@@ -331,6 +335,14 @@ public class Manifest implements XMLConsumer {
             return false;
         }
 
+        // check that it is not a Windows 10 back-up file
+        if (p.getFileName().toString().startsWith("~$")) {
+            if (job.verbose) {
+                LOG.log(Level.WARNING, "***File name ''{0}'' begins with a '~$' and will not be included", new Object[]{p.normalize().toString()});
+            }
+            return false;
+        }
+
         cancelled = false;
 
         // if file is a directory, go through directory and test all the files
@@ -348,7 +360,7 @@ public class Manifest implements XMLConsumer {
                     }
                 }
             } catch (IOException e) {
-                LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{p.normalize().toString(), e.getMessage()});
+                LOG.log(Level.WARNING, "Failed to process directory ''{0}'': {1}", new Object[]{p.normalize().toString(), e.toString()});
             } finally {
                 if (ds != null) {
                     try {
@@ -370,7 +382,7 @@ public class Manifest implements XMLConsumer {
                 xmlc.endElement("f", true);
                 LOG.log(Level.INFO, "Hashed ''{0}'': ''{1}''", new Object[]{p.normalize().toString(), hash});
             } catch (AppError ae) {
-                LOG.log(Level.WARNING, "Failed to process file ''{0}'': {1}", new Object[]{p.normalize().toString(), ae.getMessage()});
+                LOG.log(Level.WARNING, "Failed to process file ''{0}'': {1}", new Object[]{p.normalize().toString(), ae.toString()});
             }
         } else {
             LOG.log(Level.INFO, "***Ignoring directory ''{0}''", new Object[]{p.normalize().toString()});
@@ -502,7 +514,7 @@ public class Manifest implements XMLConsumer {
                 try {
                     processFile(file, hashValue);
                 } catch (AppError ae) {
-                    throw new SAXException(ae.getMessage());
+                    throw new SAXException(ae.toString());
                 }
                 break;
             case "Manifest":
@@ -595,14 +607,14 @@ public class Manifest implements XMLConsumer {
                 md.update(b, 0, i);
             }
         } catch (IOException e) {
-            throw new AppError(classname, method, 1, "failed reading file to hash: " + e.getMessage());
+            throw new AppError(classname, method, 1, "failed reading file to hash: " + e.toString());
         }
 
         // close the input file
         try {
             bis.close();
         } catch (IOException e) {
-            throw new AppError(classname, method, 1, "failed closing file to hash: " + e.getMessage());
+            throw new AppError(classname, method, 1, "failed closing file to hash: " + e.toString());
         }
 
         // calculate the digital signature over the input file
@@ -629,7 +641,7 @@ public class Manifest implements XMLConsumer {
             m.close();
             // tp.stressTest(1000);
         } catch (AppFatal | AppError e) {
-            System.out.println("Fatal error: " + e.getMessage());
+            System.out.println("Fatal error: " + e.toString());
             System.exit(-1);
         }
     }

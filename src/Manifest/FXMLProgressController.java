@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
@@ -87,7 +86,7 @@ public class FXMLProgressController extends BaseManifestController {
         try {
             initTooltips();
         } catch (AppFatal af) {
-            System.err.println(af.getMessage());
+            System.err.println(af.toString());
         }
     }
 
@@ -319,7 +318,7 @@ public class FXMLProgressController extends BaseManifestController {
                 lh = new LogHandler(results);
                 manifest = new Manifest(job, lh, this);
             } catch (AppFatal af) {
-                results.add("FAILED: " + af.getMessage());
+                results.add("FAILED: " + af.toString());
                 return results;
             }
 
@@ -351,7 +350,7 @@ public class FXMLProgressController extends BaseManifestController {
                     manifest.checkManifest(totalObjects);
                 }
             } catch (AppFatal | AppError af) {
-                System.out.println("Processing manifest error: " + af.getMessage());
+                System.out.println("Processing manifest error: " + af.toString());
             }
 
             Platform.runLater(() -> {
@@ -443,7 +442,10 @@ public class FXMLProgressController extends BaseManifestController {
             Platform.runLater(() -> {
                 currentlyProcessingL.setText(f.getFileName().toString());
             });
-            c++;
+            // ignore files that start with "~$" (i.e. Windows special) as these won't be in the manifest
+            if (!f.getFileName().toString().startsWith("~$")) {
+                c++;
+            }
         }
         return c;
     }
