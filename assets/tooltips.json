@@ -7,6 +7,7 @@
   "browse": "Open a file browsing window to select a file or directory",
   "manifest": "The file name of the manifest",
   "logFile": "The file name of the log file to be created (if any)",
+  "verifyHash": "If set (the default) verify the hash values in the manifest", 
   "hashAlgorithm": "Which hash algorithm to use (if any)",
   "verboseOutput": "Provides more detail about the processing",
   "debugOutput": "Provides even more detail about the processing",

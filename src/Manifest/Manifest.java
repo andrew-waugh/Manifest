@@ -1,5 +1,40 @@
 /**
- * ***********************************************************
+ * Copyright Public Record Office Victoria 2021
+ * Licensed under the CC-BY license http://creativecommons.org/licenses/by/3.0/au/
+ * Author Andrew Waugh
+ * Version 0.0 February 2021
+ */
+package Manifest;
+
+import Manifest.Job.Task;
+import VERSCommon.AppFatal;
+import VERSCommon.AppError;
+import VERSCommon.HandleElement;
+import VERSCommon.VERSDate;
+import VERSCommon.XMLConsumer;
+import VERSCommon.XMLCreator;
+import VERSCommon.XMLParser;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.bind.DatatypeConverter;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+
+/**
  *
  * M A N I F E S T
  *
@@ -23,37 +58,8 @@
  *     eml2vers veo1.veo
  * </pre>
  *
- * Copyright Public Record Office Victoria 2018 Licensed under the CC-BY license
- * http://creativecommons.org/licenses/by/3.0/au/ Author Andrew Waugh Version
- * 1.0 February 2018
+ *
  */
-package Manifest;
-
-import Manifest.Job.Task;
-import VERSCommon.AppFatal;
-import VERSCommon.AppError;
-import VERSCommon.HandleElement;
-import VERSCommon.VERSDate;
-import VERSCommon.XMLConsumer;
-import VERSCommon.XMLCreator;
-import VERSCommon.XMLParser;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.xml.bind.DatatypeConverter;
-import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
-
 public class Manifest implements XMLConsumer {
 
     static String classname = "Manifest"; // for reporting
@@ -65,6 +71,17 @@ public class Manifest implements XMLConsumer {
     int objectsExpected;    // total objects expected in manifest (-1 if not of interest)
 
     private final static Logger LOG = Logger.getLogger("Manifest.Manifest");
+
+    /**
+     * Report on version...
+     *
+     * <pre>
+     * 20210326 0.0.1 Provided version and cleaned up headers
+     * </pre>
+     */
+    static String version() {
+        return ("0.0.1");
+    }
 
     /**
      * Default constructor
@@ -89,6 +106,9 @@ public class Manifest implements XMLConsumer {
 
         // process command line arguments
         configure(args);
+
+        // print header
+        printHeader();
     }
 
     /**
@@ -234,8 +254,30 @@ public class Manifest implements XMLConsumer {
         if (job.manifest == null) {
             throw new AppFatal("You must specify a manifest file as an input (checking) or output (creating)");
         }
+    }
 
-        // LOG generic things
+    /**
+     * Print a header about this VEO test on the standard output
+     */
+    private void printHeader() {
+        SimpleDateFormat sdf;
+        TimeZone tz;
+
+        LOG.log(Level.INFO, "******************************************************************************");
+        LOG.log(Level.INFO, "*                                                                            *");
+        LOG.log(Level.INFO, "*                         M A N I F E S T   T O O L                          *");
+        LOG.log(Level.INFO, "*                                                                            *");
+        LOG.log(Level.INFO, "*                               Version {0}                                *", new Object[]{version()});
+        LOG.log(Level.INFO, "*               Copyright 2021 Public Record Office Victoria                 *");
+        LOG.log(Level.INFO, "*                                                                            *");
+        LOG.log(Level.INFO, "******************************************************************************");
+        LOG.log(Level.INFO, "");
+        LOG.log(Level.INFO, "Manifest generated: '" + veo + "' at ");
+        tz = TimeZone.getTimeZone("GMT+10:00");
+        sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss+10:00");
+        sdf.setTimeZone(tz);
+        LOG.log(Level.INFO, sdf.format(new Date()));
+        LOG.log(Level.INFO, "");
         if (job.debug) {
             LOG.log(Level.INFO, "Verbose/Debug mode is selected");
         } else if (job.verbose) {
