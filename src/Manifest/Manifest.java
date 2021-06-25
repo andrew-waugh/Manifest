@@ -272,7 +272,7 @@ public class Manifest implements XMLConsumer {
         LOG.log(Level.INFO, "*                                                                            *");
         LOG.log(Level.INFO, "******************************************************************************");
         LOG.log(Level.INFO, "");
-        LOG.log(Level.INFO, "Manifest generated: '" + veo + "' at ");
+        LOG.log(Level.INFO, "Manifest generated at ");
         tz = TimeZone.getTimeZone("GMT+10:00");
         sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss+10:00");
         sdf.setTimeZone(tz);
