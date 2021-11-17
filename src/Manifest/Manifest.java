@@ -25,12 +25,12 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.xml.bind.DatatypeConverter;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
@@ -69,6 +69,7 @@ public class Manifest implements XMLConsumer {
     FXMLProgressController.DoManifestTask reporter; // call back for reporting
     XMLParser xmlp;         // parser for XML manifest
     int objectsExpected;    // total objects expected in manifest (-1 if not of interest)
+    static Base64.Encoder b64enc = Base64.getMimeEncoder();
 
     private final static Logger LOG = Logger.getLogger("Manifest.Manifest");
 
@@ -77,6 +78,7 @@ public class Manifest implements XMLConsumer {
      *
      * <pre>
      * 20210326 0.0.1 Provided version and cleaned up headers
+     * 20211117 0.0.2 Fixed to work with JDK 16 etc
      * </pre>
      */
     static String version() {
@@ -181,6 +183,10 @@ public class Manifest implements XMLConsumer {
         try {
             while (i < args.length) {
                 switch (args[i]) {
+                    
+                    case "Manifest.jar":
+                        i++;
+                        break;
 
                     // verbose?
                     case "-v":
@@ -272,11 +278,18 @@ public class Manifest implements XMLConsumer {
         LOG.log(Level.INFO, "*                                                                            *");
         LOG.log(Level.INFO, "******************************************************************************");
         LOG.log(Level.INFO, "");
-        LOG.log(Level.INFO, "Manifest generated at ");
+        LOG.log(Level.INFO, "Manifest task? {0}", job.task);
+        if (job.task == Task.CREATE) {
+            LOG.log(Level.INFO, "Creating manifest: ''{0}''", job.manifest.toString());
+        }
+        if (job.task == Task.VERIFY) {
+            LOG.log(Level.INFO, "Verifying manifest: ''{0}''", job.manifest.toString());
+            LOG.log(Level.INFO, "Verifying hash values? {0}", job.verifyHash);
+        }
         tz = TimeZone.getTimeZone("GMT+10:00");
         sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss+10:00");
         sdf.setTimeZone(tz);
-        LOG.log(Level.INFO, sdf.format(new Date()));
+        LOG.log(Level.INFO, "Manifest generated/checked at {0}", new Object[]{sdf.format(new Date())});
         LOG.log(Level.INFO, "");
         if (job.debug) {
             LOG.log(Level.INFO, "Verbose/Debug mode is selected");
@@ -285,10 +298,6 @@ public class Manifest implements XMLConsumer {
         }
         LOG.log(Level.INFO, "Hash algorithm is ''{0}''", job.hashAlg);
         LOG.log(Level.INFO, "User id to be logged: ''{0}''", new Object[]{userId});
-        LOG.log(Level.INFO, "Creating a manifest? {0}", job.task);
-        if (job.task == Task.VERIFY) {
-            LOG.log(Level.INFO, "Verifying hash values? {0}", job.verifyHash);
-        }
     }
 
     /**
@@ -662,7 +671,8 @@ public class Manifest implements XMLConsumer {
         // calculate the digital signature over the input file
         // calculate signature and convert it into a byte buffer
         hash = md.digest();
-        return (DatatypeConverter.printBase64Binary(hash));
+        return (b64enc.encodeToString(hash));
+        // return (DatatypeConverter.printBase64Binary(hash));
     }
 
     /**
@@ -675,11 +685,11 @@ public class Manifest implements XMLConsumer {
 
         try {
             m = new Manifest(args);
-            // if (m.createManifest) {
-            // m.createManifest();
-            // } else {
-            m.checkManifest(-1);
-            //}
+            if (m.job.task == Job.Task.CREATE) {
+                m.createManifest();
+            } else {
+                m.checkManifest(-1);
+            }
             m.close();
             // tp.stressTest(1000);
         } catch (AppFatal | AppError e) {
