@@ -107,7 +107,7 @@ public class Manifest implements XMLConsumer {
 
         // Set up logging
         System.setProperty("java.util.logging.SimpleFormatter.format", "%5$s%n");
-        LOG.setLevel(Level.INFO);
+        LOG.setLevel(Level.WARNING);
 
         // set up default global variables
         job = new Job();
@@ -121,7 +121,7 @@ public class Manifest implements XMLConsumer {
 
         // process command line arguments
         configure(args);
-        
+
         // remove any handlers associated with the LOG & log messages aren't to
         // go to the parent
         h = LOG.getHandlers();
@@ -132,14 +132,15 @@ public class Manifest implements XMLConsumer {
 
         // if caller specified logging to a log file, open the log file &
         // associate with logging system. Otherwise, just log to the terminal
+        fw = null;
         if (job.logFile != null) {
             try {
                 fw = new FileWriter(job.logFile.toFile());
             } catch (IOException ioe) {
                 throw new AppFatal("Opening log file failed: " + ioe.getMessage());
             }
-            LOG.addHandler(new LogHandler(System.out, fw, null));
         }
+        LOG.addHandler(new LogHandler(System.out, fw, null));
 
         // tell what is happening
         LOG.log(Level.INFO, "******************************************************************************");
@@ -215,7 +216,7 @@ public class Manifest implements XMLConsumer {
         // add log handler from calling program
         LOG.addHandler(new LogHandler(null, null, results));
         System.setProperty("java.util.logging.SimpleFormatter.format", "%5$s");
-        LOG.setLevel(Level.SEVERE);
+        LOG.setLevel(Level.WARNING);
         if (job.verbose) {
             LOG.setLevel(Level.INFO);
         } else if (job.debug) {
@@ -238,11 +239,11 @@ public class Manifest implements XMLConsumer {
         job = null;
         reporter = null;
     }
-    
+
     /**
-     * Log Handler used to direct log messages to a file, to stdout, or to
-     * an arrayList. Warning & severe log messages are prefixed
-     * by the keywords "WARNING:" and "SEVERE:" to highlight them
+     * Log Handler used to direct log messages to a file, to stdout, or to an
+     * arrayList. Warning & severe log messages are prefixed by the keywords
+     * "WARNING:" and "SEVERE:" to highlight them
      */
     private class LogHandler extends Handler {
 
@@ -254,7 +255,8 @@ public class Manifest implements XMLConsumer {
         /**
          * Create the log handler. The Writer receives a copy of all log
          * messages it it is not null.
-         * @param writer 
+         *
+         * @param writer
          */
         public LogHandler(PrintStream ps, Writer writer, ArrayList<String> results) {
             sf = new SimpleFormatter();
@@ -270,10 +272,10 @@ public class Manifest implements XMLConsumer {
             s = sf.format(record);
             try {
                 if (record.getLevel() == Level.SEVERE) {
-                    s = "SEVERE: "+s;
+                    s = "SEVERE: " + s;
                 }
                 if (record.getLevel() == Level.WARNING) {
-                    s = "WARNING: "+s;
+                    s = "WARNING: " + s;
                 }
                 if (w != null) {
                     w.write(s);
@@ -313,9 +315,9 @@ public class Manifest implements XMLConsumer {
     /**
      * Configure
      *
-     * This method gets the options for this run of the manifest generator from the
-     * command line. See the comment at the start of this file for the command
-     * line arguments.
+     * This method gets the options for this run of the manifest generator from
+     * the command line. See the comment at the start of this file for the
+     * command line arguments.
      *
      * @param args[] the command line arguments
      * @param VEOFatal if a fatal error occurred
@@ -504,17 +506,13 @@ public class Manifest implements XMLConsumer {
 
         // check that file or directory exists
         if (!Files.exists(p)) {
-            if (job.verbose) {
-                LOG.log(Level.WARNING, "***File ''{0}'' does not exist", new Object[]{p.normalize().toString()});
-            }
+            LOG.log(Level.WARNING, "***File ''{0}'' does not exist", new Object[]{p.normalize().toString()});
             return false;
         }
 
         // check that it is not a Windows 10 back-up file
         if (p.getFileName().toString().startsWith("~$")) {
-            if (job.verbose) {
-                LOG.log(Level.WARNING, "***File name ''{0}'' begins with a '~$' and will not be included", new Object[]{p.normalize().toString()});
-            }
+            LOG.log(Level.WARNING, "***File name ''{0}'' begins with a '~$' and will not be included", new Object[]{p.normalize().toString()});
             return false;
         }
 
@@ -522,9 +520,7 @@ public class Manifest implements XMLConsumer {
 
         // if file is a directory, go through directory and test all the files
         if (Files.isDirectory(p)) {
-            if (job.verbose) {
-                LOG.log(Level.INFO, "***Processing directory ''{0}''", new Object[]{p.normalize().toString()});
-            }
+            LOG.log(Level.INFO, "***Processing directory ''{0}''", new Object[]{p.normalize().toString()});
             ds = null;
             try {
                 ds = Files.newDirectoryStream(p);
@@ -801,7 +797,6 @@ public class Manifest implements XMLConsumer {
         }
         System.out.println("");*/
         return (b64enc.encodeToString(hash));
-        // return (DatatypeConverter.printBase64Binary(hash));
     }
 
     /**
@@ -820,7 +815,6 @@ public class Manifest implements XMLConsumer {
                 m.checkManifest(-1);
             }
             m.close();
-            // tp.stressTest(1000);
         } catch (AppFatal | AppError e) {
             System.out.println("Fatal error: " + e.toString());
             System.exit(-1);
