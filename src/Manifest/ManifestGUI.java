@@ -37,9 +37,11 @@ public class ManifestGUI extends Application {
     @Override
     public void init() throws Exception {
         List<String> l;
+        int i;
 
         l = getParameters().getRaw();
-        for (int i = 1; i < l.size(); i++) {
+        i = 0;
+        while (i < l.size()) {
             // System.out.println("Parameter " + i + " '" + l.get(i) + "'");
             switch (l.get(i)) {
                 case "Manifest.jar":
