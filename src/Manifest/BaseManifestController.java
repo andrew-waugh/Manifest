@@ -58,13 +58,12 @@ public class BaseManifestController {
      */
     protected JSONObject openTooltips() throws AppFatal {
         JSONParser parser;
-        File tooltipsFile = new File(TOOLTIPS_PATH);
         FileReader fileReader;
         JSONObject allJson, json;
 
         parser = new JSONParser();
         try {
-            fileReader = new FileReader(tooltipsFile);
+            fileReader = new FileReader(AppConfig.getToolTipsPath().toFile());
         } catch (FileNotFoundException e) {
             throw new AppFatal("Tooltips file not found: " + e.toString());
         }

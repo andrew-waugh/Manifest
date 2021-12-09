@@ -7,16 +7,20 @@
 package Manifest;
  
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 /**
  * Manages the applications configuration
  */
 public class AppConfig {
-    
-    private static final String CONFIG_PATH = "assets/config.json";    
+    private final Path baseDirectory;
+    private static final String CONFIG_FILE = "config.json";    
     private static AppConfig appConfig;
     
     private static boolean isPreloaderEnabled = true;
@@ -38,26 +42,26 @@ public class AppConfig {
     private static String modeDefault = "check";
     // Anchor tag for linking to the manifes help
     private static String manifestHelpHashTag = "#manifest";
+    private static Path toolTipsPath;
     
     
-    public AppConfig() {
-        File configFile = new File(CONFIG_PATH);
-        loadJSON(configFile);
+    public AppConfig(Path baseDirectory) {
+        this.baseDirectory = baseDirectory;
+        loadJSON(baseDirectory.resolve(CONFIG_FILE));
     }
     
-    public static AppConfig getInstance() {
+    public static AppConfig getInstance(Path baseDirectory) {
         if (appConfig == null) {
-            appConfig = new AppConfig();
+            appConfig = new AppConfig(baseDirectory);
         }
-        
         return appConfig;
     }
     
-    private static void loadJSON(File configFile) {
+    private void loadJSON(Path configFile) {
         JSONParser parser = new JSONParser();        
         
-        try {           
-            FileReader fileReader = new FileReader(configFile);
+        try {
+            FileReader fileReader = new FileReader(configFile.toFile());
             JSONObject allJson = (JSONObject) parser.parse(fileReader);
             
             isPreloaderEnabled = Boolean.parseBoolean(configValue(allJson, "preloader_enabled", String.valueOf(isPreloaderEnabled)));            
@@ -66,11 +70,15 @@ public class AppConfig {
             JSONObject loggingJson = (JSONObject) allJson.get("logging");
             isLogOutputToUI = Boolean.parseBoolean(configValue(loggingJson, "output_to_ui", String.valueOf(isLogOutputToUI)));
             isLogErrorsToUI = Boolean.parseBoolean(configValue(loggingJson, "errors_to_ui", String.valueOf(isLogErrorsToUI)));
-            
+            toolTipsPath = baseDirectory.resolve("tooltips.json");
             processCreateConfig(allJson);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }    
+        } catch (FileNotFoundException fnfe) {
+            System.err.println("Configuration file '"+configFile.toString()+"' not found");
+        } catch (IOException ioe) {
+            System.err.println("Failed reading configuration file '"+configFile.toString()+"': "+ioe.getMessage());
+        } catch (ParseException pe) {
+            System.err.println("Failed parsing configuration file '"+configFile.toString()+"': "+pe.getMessage());
+        }
     }
          
     private static String configValue(JSONObject json, String key, String defaultVal) {
@@ -227,5 +235,9 @@ public class AppConfig {
     
     public static String getCreateHelpHashTag() {
         return manifestHelpHashTag;
+    }
+    
+    public static Path getToolTipsPath() {
+        return toolTipsPath;
     }
 }

@@ -17,7 +17,11 @@ import VERSCommon.XMLParser;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,12 +29,15 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
@@ -65,10 +72,10 @@ public class Manifest implements XMLConsumer {
     static String classname = "Manifest"; // for reporting
     Job job;                // job description
     int fileCount;          // number of files processed
-    String userId;          // user performing the conversion
     FXMLProgressController.DoManifestTask reporter; // call back for reporting
     XMLParser xmlp;         // parser for XML manifest
     int objectsExpected;    // total objects expected in manifest (-1 if not of interest)
+    boolean help;           // true if printing a cheat list of command line options
     static Base64.Encoder b64enc = Base64.getMimeEncoder();
 
     private final static Logger LOG = Logger.getLogger("Manifest.Manifest");
@@ -82,7 +89,7 @@ public class Manifest implements XMLConsumer {
      * </pre>
      */
     static String version() {
-        return ("0.0.1");
+        return ("0.0.2");
     }
 
     /**
@@ -92,25 +99,94 @@ public class Manifest implements XMLConsumer {
      * @throws AppFatal if a fatal error occurred
      */
     public Manifest(String args[]) throws AppFatal {
+        SimpleDateFormat sdf;
+        TimeZone tz;
+        FileWriter fw;
+        Handler h[];
+        int i;
 
         // Set up logging
-        System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s%n");
+        System.setProperty("java.util.logging.SimpleFormatter.format", "%5$s%n");
         LOG.setLevel(Level.INFO);
 
         // set up default global variables
         job = new Job();
         fileCount = 0;
-        userId = System.getProperty("user.name");
-        if (userId == null) {
-            userId = "Unknown user";
+        job.actor = System.getProperty("user.name");
+        if (job.actor == null) {
+            job.actor = "Unknown user";
         }
         reporter = null;
+        help = false;
 
         // process command line arguments
         configure(args);
+        
+        // remove any handlers associated with the LOG & log messages aren't to
+        // go to the parent
+        h = LOG.getHandlers();
+        for (i = 0; i < h.length; i++) {
+            LOG.removeHandler(h[i]);
+        }
+        LOG.setUseParentHandlers(false);
 
-        // print header
-        printHeader();
+        // if caller specified logging to a log file, open the log file &
+        // associate with logging system. Otherwise, just log to the terminal
+        if (job.logFile != null) {
+            try {
+                fw = new FileWriter(job.logFile.toFile());
+            } catch (IOException ioe) {
+                throw new AppFatal("Opening log file failed: " + ioe.getMessage());
+            }
+            LOG.addHandler(new LogHandler(System.out, fw, null));
+        }
+
+        // tell what is happening
+        LOG.log(Level.INFO, "******************************************************************************");
+        LOG.log(Level.INFO, "*                                                                            *");
+        LOG.log(Level.INFO, "*                         M A N I F E S T   T O O L                          *");
+        LOG.log(Level.INFO, "*                                                                            *");
+        LOG.log(Level.INFO, "*                                Version {0}                               *", new Object[]{version()});
+        LOG.log(Level.INFO, "*               Copyright 2021 Public Record Office Victoria                 *");
+        LOG.log(Level.INFO, "*                                                                            *");
+        LOG.log(Level.INFO, "******************************************************************************");
+        LOG.log(Level.INFO, "");
+        tz = TimeZone.getTimeZone("GMT+10:00");
+        sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss+10:00");
+        sdf.setTimeZone(tz);
+        LOG.log(Level.INFO, "Run at {0}", new Object[]{sdf.format(new Date())});
+        LOG.log(Level.INFO, "");
+        if (help) {
+            // "Manifest [-help] [-v] [-d] [-o <file>] [-i <file>] [-h <hashAlg>] [-nohash] directory"
+            LOG.log(Level.INFO, "Command line arguments:");
+            LOG.log(Level.INFO, " Mandatory:");
+            LOG.log(Level.INFO, "  Three options are supported:");
+            LOG.log(Level.INFO, "   To create (output) a manifest:");
+            LOG.log(Level.INFO, "    -o <manifestFile> <directory>: create (output) the specified manifest file from the specified directory");
+            LOG.log(Level.INFO, "   To check (input) a manifest:");
+            LOG.log(Level.INFO, "    -i <manifestFile> <directory>: check (input) the specified manifest file against the specified directory");
+            LOG.log(Level.INFO, "   To load a job (specifying creating or checking a manifest using a JSON file):");
+            LOG.log(Level.INFO, "    -j <jobFile.json>: load the details of what to do from a job file");
+            LOG.log(Level.INFO, "");
+            LOG.log(Level.INFO, " Optional:");
+            LOG.log(Level.INFO, "  -l <logFile>: save the details of what happened in a file");
+            LOG.log(Level.INFO, "  -h <hashAlgorithm>: specifies the hash algorithm (default SHA-1)");
+            LOG.log(Level.INFO, "");
+            LOG.log(Level.INFO, "  -v: verbose mode: give more details about processing");
+            LOG.log(Level.INFO, "  -d: debug mode: give a lot of details about processing");
+            LOG.log(Level.INFO, "  -help: print this listing");
+            LOG.log(Level.INFO, "");
+        }
+
+        // check to see that user specified the mandatory arguments
+        if (job.directory == null) {
+            throw new AppFatal(classname, 1, "No directory specified. Usage: " + USAGE);
+        }
+        if (job.manifest == null) {
+            throw new AppFatal(classname, 2, "No manifest specified. Usage: " + USAGE);
+        }
+
+        LOG.log(Level.INFO, job.toString());
     }
 
     /**
@@ -120,11 +196,11 @@ public class Manifest implements XMLConsumer {
      * called so that the governing program can update any status.
      *
      * @param job parameters for the execution (replaces the command line)
-     * @param hdlr place where log messages go
+     * @param results place where log messages go
      * @param reporter callback to update status in the calling program
      * @throws AppFatal
      */
-    public Manifest(Job job, Handler hdlr, FXMLProgressController.DoManifestTask reporter) throws AppFatal {
+    public Manifest(Job job, ArrayList<String> results, FXMLProgressController.DoManifestTask reporter) throws AppFatal {
         Handler h[];
         int i;
 
@@ -137,7 +213,7 @@ public class Manifest implements XMLConsumer {
         LOG.setUseParentHandlers(false);
 
         // add log handler from calling program
-        LOG.addHandler(hdlr);
+        LOG.addHandler(new LogHandler(null, null, results));
         System.setProperty("java.util.logging.SimpleFormatter.format", "%5$s");
         LOG.setLevel(Level.SEVERE);
         if (job.verbose) {
@@ -160,31 +236,108 @@ public class Manifest implements XMLConsumer {
     public void close() {
         job.free();
         job = null;
-        userId = null;
         reporter = null;
+    }
+    
+    /**
+     * Log Handler used to direct log messages to a file, to stdout, or to
+     * an arrayList. Warning & severe log messages are prefixed
+     * by the keywords "WARNING:" and "SEVERE:" to highlight them
+     */
+    private class LogHandler extends Handler {
+
+        final SimpleFormatter sf;
+        Writer w;
+        ArrayList<String> r;
+        PrintStream ps;
+
+        /**
+         * Create the log handler. The Writer receives a copy of all log
+         * messages it it is not null.
+         * @param writer 
+         */
+        public LogHandler(PrintStream ps, Writer writer, ArrayList<String> results) {
+            sf = new SimpleFormatter();
+            w = writer;
+            r = results;
+            this.ps = ps;
+        }
+
+        @Override
+        public void publish(LogRecord record) {
+            String s;
+
+            s = sf.format(record);
+            try {
+                if (record.getLevel() == Level.SEVERE) {
+                    s = "SEVERE: "+s;
+                }
+                if (record.getLevel() == Level.WARNING) {
+                    s = "WARNING: "+s;
+                }
+                if (w != null) {
+                    w.write(s);
+                }
+                if (r != null) {
+                    r.add(s);
+                }
+                if (ps != null) {
+                    ps.print(s);
+                }
+            } catch (IOException ioe) {
+                System.err.println(ioe.toString() + "Manifest.LogHandler.publish()");
+            }
+        }
+
+        @Override
+        public void flush() {
+            try {
+                w.flush();
+            } catch (IOException ioe) {
+                System.err.println(ioe.toString() + "Manifest.LogHandler.close()");
+            }
+        }
+
+        @Override
+        public void close() {
+            if (w != null) {
+                try {
+                    w.close();
+                } catch (IOException ioe) {
+                    System.err.println(ioe.toString() + "Manifest.LogHandler.close()");
+                }
+            }
+        }
     }
 
     /**
      * Configure
      *
-     * This method gets the options for this run of the manifest generator a the
+     * This method gets the options for this run of the manifest generator from the
      * command line. See the comment at the start of this file for the command
      * line arguments.
      *
      * @param args[] the command line arguments
      * @param VEOFatal if a fatal error occurred
      */
+    final String USAGE = "Manifest [-help] [-j <file>] [-o <file>] [-i <file>] [-h <hashAlg>] [-l logfile] [-nohash] [-v] [-d] directory";
+
     private void configure(String args[]) throws AppFatal {
         int i;
-        String usage = "Manifest [-v] [-d] [-o <file>] [-i <file>] [-h <hashAlg>] [-nohash] directory";
 
         // hashFiles command line arguments
         i = 0;
         try {
             while (i < args.length) {
                 switch (args[i]) {
-                    
+
                     case "Manifest.jar":
+                        i++;
+                        break;
+
+                    // print help?
+                    case "-help":
+                        help = true;
                         i++;
                         break;
 
@@ -192,7 +345,6 @@ public class Manifest implements XMLConsumer {
                     case "-v":
                         job.verbose = true;
                         LOG.setLevel(Level.INFO);
-                        // rootLog.setLevel(Level.INFO);
                         i++;
                         break;
 
@@ -200,7 +352,6 @@ public class Manifest implements XMLConsumer {
                     case "-d":
                         job.debug = true;
                         LOG.setLevel(Level.FINE);
-                        // rootLog.setLevel(Level.FINE);
                         i++;
                         break;
 
@@ -216,6 +367,24 @@ public class Manifest implements XMLConsumer {
                     case "-h":
                         i++;
                         job.hashAlg = args[i];
+                        i++;
+                        break;
+
+                    // '-j' specifies a job file
+                    case "-j":
+                        i++;
+                        try {
+                            job.loadJob(Paths.get(args[i]));
+                        } catch (AppError ae) {
+                            throw new AppFatal(ae.getMessage());
+                        }
+                        i++;
+                        break;
+
+                    // '-l' specifies a log file
+                    case "-l":
+                        i++;
+                        job.logFile = Paths.get(args[i]);
                         i++;
                         break;
 
@@ -237,12 +406,12 @@ public class Manifest implements XMLConsumer {
                     default:
                         // if unrecognised arguement, print help string and exit
                         if (args[i].charAt(0) == '-') {
-                            throw new AppFatal("Unrecognised argument '" + args[i] + "' Usage: " + usage);
+                            throw new AppFatal("Unrecognised argument '" + args[i] + "' Usage: " + USAGE);
                         }
 
                         // if doesn't start with '-' assume a file or directory name
                         if (job.directory != null) {
-                            throw new AppFatal("Only one directory can be present '" + args[i] + "' Usage: " + usage);
+                            throw new AppFatal("Only one directory can be present '" + args[i] + "' Usage: " + USAGE);
                         }
                         job.directory = Paths.get(args[i]);
                         i++;
@@ -250,54 +419,8 @@ public class Manifest implements XMLConsumer {
                 }
             }
         } catch (ArrayIndexOutOfBoundsException ae) {
-            throw new AppFatal("Missing argument. Usage: " + usage);
+            throw new AppFatal("Missing argument. Usage: " + USAGE);
         }
-
-        // check to see if at least one file or directory is specified
-        if (job.directory == null) {
-            throw new AppFatal("You must a directory to process");
-        }
-        if (job.manifest == null) {
-            throw new AppFatal("You must specify a manifest file as an input (checking) or output (creating)");
-        }
-    }
-
-    /**
-     * Print a header about this VEO test on the standard output
-     */
-    private void printHeader() {
-        SimpleDateFormat sdf;
-        TimeZone tz;
-
-        LOG.log(Level.INFO, "******************************************************************************");
-        LOG.log(Level.INFO, "*                                                                            *");
-        LOG.log(Level.INFO, "*                         M A N I F E S T   T O O L                          *");
-        LOG.log(Level.INFO, "*                                                                            *");
-        LOG.log(Level.INFO, "*                               Version {0}                                *", new Object[]{version()});
-        LOG.log(Level.INFO, "*               Copyright 2021 Public Record Office Victoria                 *");
-        LOG.log(Level.INFO, "*                                                                            *");
-        LOG.log(Level.INFO, "******************************************************************************");
-        LOG.log(Level.INFO, "");
-        LOG.log(Level.INFO, "Manifest task? {0}", job.task);
-        if (job.task == Task.CREATE) {
-            LOG.log(Level.INFO, "Creating manifest: ''{0}''", job.manifest.toString());
-        }
-        if (job.task == Task.VERIFY) {
-            LOG.log(Level.INFO, "Verifying manifest: ''{0}''", job.manifest.toString());
-            LOG.log(Level.INFO, "Verifying hash values? {0}", job.verifyHash);
-        }
-        tz = TimeZone.getTimeZone("GMT+10:00");
-        sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss+10:00");
-        sdf.setTimeZone(tz);
-        LOG.log(Level.INFO, "Manifest generated/checked at {0}", new Object[]{sdf.format(new Date())});
-        LOG.log(Level.INFO, "");
-        if (job.debug) {
-            LOG.log(Level.INFO, "Verbose/Debug mode is selected");
-        } else if (job.verbose) {
-            LOG.log(Level.INFO, "Verbose output is selected");
-        }
-        LOG.log(Level.INFO, "Hash algorithm is ''{0}''", job.hashAlg);
-        LOG.log(Level.INFO, "User id to be logged: ''{0}''", new Object[]{userId});
     }
 
     /**
@@ -341,6 +464,7 @@ public class Manifest implements XMLConsumer {
      * way through, whatever has been produced is output.
      *
      * @throws VERSCommon.AppFatal
+     * @throws VERSCommon.AppError
      */
     public void createManifest() throws AppFatal, AppError {
         XMLCreator xmlc;
@@ -671,6 +795,11 @@ public class Manifest implements XMLConsumer {
         // calculate the digital signature over the input file
         // calculate signature and convert it into a byte buffer
         hash = md.digest();
+        /*
+        for (int j=0; j<hash.length; j++) {
+            System.out.print(String.format("%02x",hash[j]));
+        }
+        System.out.println("");*/
         return (b64enc.encodeToString(hash));
         // return (DatatypeConverter.printBase64Binary(hash));
     }

@@ -13,7 +13,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -51,11 +50,11 @@ public class Job {
     public Job() {
         setDefault();
     }
-    
+
     /**
      * Set up the default job
      */
-    protected void setDefault() {
+    final protected void setDefault() {
         verbose = AppConfig.getCreateVerboseOutputDefault();
         debug = AppConfig.getCreateDebugModeDefault();
         task = Task.CREATE;
@@ -115,9 +114,7 @@ public class Job {
      * @throws AppError
      */
     public void saveJob(Path file) throws AppError {
-        JSONObject j1, j2;
-        JSONArray ja1;
-        int i;
+        JSONObject j1;
 
         FileWriter fw;
         BufferedWriter bw;
@@ -232,9 +229,7 @@ public class Job {
      */
     public void loadJob(Path file) throws AppError {
         JSONParser parser = new JSONParser();
-        JSONObject j1, j2;
-        JSONArray ja1;
-        int i;
+        JSONObject j1;
         FileReader fr;
         BufferedReader br;
         String s;
@@ -242,7 +237,7 @@ public class Job {
 
         // set up the default job
         setDefault();
-        
+
         // overwrite it with the saved job
         try {
             fr = new FileReader(file.toFile());
@@ -311,80 +306,48 @@ public class Job {
 
     @Override
     public String toString() {
-        int i;
         StringBuilder sb = new StringBuilder();
 
-        sb.append("Task: ");
-        switch (task) {
-            case CREATE:
-                sb.append("create\n");
-                break;
-            case UPDATE:
-                sb.append("update\n");
-                break;
-            case VERIFY:
-                sb.append("verify ");
-                if (!verifyHash) {
-                    sb.append("(only verify existance of file, DO NOT verify hash)\n");
-                } else {
-                    sb.append("(verify both existance and hash of file)\n");
-                }
-                break;
-            case NOTSET:
-                sb.append("not set\n");
-                break;
+        if (task == Task.CREATE) {
+            sb.append("Create manifest '" + manifest.toString() + "' from directory '" + directory.toString() + "'\n");
+            sb.append("Hash algorithm (specified on command line or the default): " + hashAlg + "\n");
+        } else if (task == Task.VERIFY) {
+            sb.append("Checking manifest '" + manifest.toString() + "' against directory '" + directory.toString() + "' ");
+            if (!verifyHash) {
+                sb.append("(only verify existance of file, DO NOT verify hash)\n");
+            } else {
+                sb.append("(verify both existance and hash of file)\n");
+            }
         }
-        sb.append("Actor: '");
+        sb.append(" Person creating or checking manifest");
         if (actor != null) {
-            sb.append(actor);
+            sb.append(": '" + actor + "'\n");
         } else {
-            sb.append("not set");
+            sb.append(" is not set\n");
         }
-        sb.append("'\n");
-        sb.append("Identifier: '");
-        if (identifier != null) {
-            sb.append(identifier);
-        } else {
-            sb.append("not set");
-        }
-        sb.append("'\n");
-        sb.append("Manifest: '");
-        if (manifest != null) {
-            sb.append(manifest);
-        } else {
-            sb.append("not set");
-        }
-        sb.append("'\n");
-        sb.append("Directory: ");
-        if (directory != null) {
-            sb.append(directory.toString());
-        } else {
-            sb.append("None specified");
-        }
-        sb.append("\n");
-        sb.append("Comment: '");
+        sb.append(" Comment on creating or checking manifest: ");
         if (comment != null) {
-            sb.append(comment);
+            sb.append(comment + "'\n");
         } else {
-            sb.append("not set");
+            sb.append("not set\n");
         }
-        sb.append("'\n");
+        sb.append(" Manifest identifier: ");
+        if (identifier != null) {
+            sb.append("'" + identifier + "'\n");
+        } else {
+            sb.append("not set\n");
+        }
         if (logFile != null) {
-            sb.append("Log File: '");
+            sb.append(" Log File: '");
             sb.append(logFile.toString());
             sb.append("'\n");
         }
-        if (hashAlg != null) {
-            sb.append("Hash Algorithm: '");
-            sb.append(hashAlg);
-            sb.append("'\n");
+        if (debug) {
+            sb.append(" Debug out selected\n");
         }
-        sb.append("Verbose : ");
-        sb.append(verbose);
-        sb.append("'\n");
-        sb.append("Debug: '");
-        sb.append(debug);
-        sb.append("'\n");
+        if (verbose) {
+            sb.append(" Verbose output is selected\n");
+        }
         return sb.toString();
     }
 }

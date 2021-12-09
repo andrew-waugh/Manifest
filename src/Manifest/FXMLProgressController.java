@@ -18,9 +18,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import java.util.logging.SimpleFormatter;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
@@ -141,6 +138,11 @@ public class FXMLProgressController extends BaseManifestController {
     @FXML
     private void handleLogAction(ActionEvent event) {
         File f;
+
+        // ignore unless no logging has been specified
+        if (job.logFile != null) {
+            return;
+        }
 
         // ask user what file to log to
         f = browseForSaveFile("Select log file", ".txt", job.logFile);
@@ -309,14 +311,12 @@ public class FXMLProgressController extends BaseManifestController {
          */
         @Override
         protected ArrayList<String> call() {
-            LogHandler lh;
 
             // create a list in which to put the results of processing 
             updateValue(results);
 
             try {
-                lh = new LogHandler(results);
-                manifest = new Manifest(job, lh, this);
+                manifest = new Manifest(job, results, this);
             } catch (AppFatal af) {
                 results.add("FAILED: " + af.toString());
                 return results;
@@ -406,81 +406,56 @@ public class FXMLProgressController extends BaseManifestController {
             });
             return isCancelled();
         }
-    }
 
-    /**
-     * Recursively count the number of normal files that would be hashed
-     * contained within a given file. This is used to display the progress when
-     * the hashes are calculated...
-     *
-     * @param f file (which could be a directory)
-     * @return the number of normal files
-     */
-    private int count(Path f) {
-        DirectoryStream<Path> ds;
-        int c;
+        /**
+         * Recursively count the number of normal files that would be hashed
+         * contained within a given file. This is used to display the progress
+         * when the hashes are calculated...
+         *
+         * @param f file (which could be a directory)
+         * @return the number of normal files
+         */
+        private int count(Path f) {
+            DirectoryStream<Path> ds;
+            int c;
 
-        c = 0;
+            c = 0;
 
-        // check that file or directory exists
-        if (!Files.exists(f)) {
-            return 0;
-        }
+            // check if cancelled
+            if (isCancelled()) {
+                return c;
+            }
 
-        // if file is a directory, go through directory and test all the files
-        if (Files.isDirectory(f)) {
-            try {
-                ds = Files.newDirectoryStream(f);
-                for (Path p : ds) {
-                    c += count(p);
+            // check that file or directory exists
+            if (!Files.exists(f)) {
+                return 0;
+            }
+
+            // if file is a directory, go through directory and test all the files
+            if (Files.isDirectory(f)) {
+                try {
+                    ds = Files.newDirectoryStream(f);
+                    for (Path p : ds) {
+                        c += count(p);
+                        if (isCancelled()) {
+                            break;
+                        }
+                    }
+                    ds.close();
+                } catch (IOException e) {
+                    // ignore - it's only a status
                 }
-                ds.close();
-            } catch (IOException e) {
-                // ignore - it's only a status
+            } else if (Files.isRegularFile(f)) {
+                Platform.runLater(() -> {
+                    currentlyProcessingL.setText(f.getFileName().toString());
+                });
+                
+                // ignore files that start with "~$" (i.e. Windows special) as these won't be in the manifest
+                if (!f.getFileName().toString().startsWith("~$")) {
+                    c++;
+                }
             }
-        } else if (Files.isRegularFile(f)) {
-            Platform.runLater(() -> {
-                currentlyProcessingL.setText(f.getFileName().toString());
-            });
-            // ignore files that start with "~$" (i.e. Windows special) as these won't be in the manifest
-            if (!f.getFileName().toString().startsWith("~$")) {
-                c++;
-            }
-        }
-        return c;
-    }
-
-    /**
-     * Log Handler used to ensure any call to Log() when processing things
-     * writes the log entry to the ArrayList for eventual inclusion in the
-     * status update
-     */
-    private class LogHandler extends Handler {
-
-        final SimpleFormatter sf;
-        ArrayList<String> responses; // list of results generated
-
-        public LogHandler(ArrayList<String> responses) {
-            this.responses = responses;
-            sf = new SimpleFormatter();
-        }
-
-        @Override
-        public void publish(LogRecord record) {
-            String s;
-
-            s = sf.format(record);
-            responses.add(s);
-        }
-
-        @Override
-        public void flush() {
-
-        }
-
-        @Override
-        public void close() {
-
+            return c;
         }
     }
 }

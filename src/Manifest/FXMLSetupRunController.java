@@ -7,7 +7,7 @@ package Manifest;
 
 import VERSCommon.AppError;
 import VERSCommon.AppFatal;
-import com.sun.javafx.scene.control.skin.TextInputControlSkin;
+//import com.sun.javafx.scene.control.skin.TextInputControlSkin;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -239,7 +239,9 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     }
 
     /**
-     * Traverse to the next node in the traversal tree.
+     * Traverse to the next node in the traversal tree. This method moves the
+     * current focus to the next text area when the user types an 'enter' key.
+     * The normal focus traversal is TAB and SHIFT-TAB. It fails now because...
      * WARNING. It appears that skin.getBehavior() is not supported long term...
      * @param event
      * @param key 
@@ -247,8 +249,8 @@ public class FXMLSetupRunController extends BaseManifestController implements In
     private void traverseToNext(KeyEvent event, KeyCode key) {
         if (event.getCode().equals(key)) {
             Node node = (Node) event.getSource();
-            TextInputControlSkin skin = (TextInputControlSkin) ((Control) node).getSkin();
-            skin.getBehavior().traverseNext();
+            // TextInputControlSkin skin = (TextInputControlSkin) ((Control) node).getSkin();
+            // skin.getBehavior().traverseNext();
         }
     }
 
@@ -260,6 +262,7 @@ public void shutdown() {
 
     /**
      * Put a tool tip on each control
+     * @throws VERSCommon.AppFatal
      */
     protected void initTooltips() throws AppFatal {
         JSONObject json;
@@ -754,9 +757,9 @@ public void shutdown() {
             return;
         }
 
-        // check that the directory exists
-        if (!Files.exists(job.logFile)) {
-            a = new Alert(Alert.AlertType.CONFIRMATION, "The log file already exists. Overwrite?");
+        // check with the user if the file exists
+        if (Files.exists(job.logFile)) {
+            a = new Alert(Alert.AlertType.CONFIRMATION, "The log file '"+job.logFile.toString()+"'already exists. Overwrite?");
             a.showAndWait();
             return;
         }
