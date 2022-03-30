@@ -6,7 +6,6 @@
  */
 package Manifest;
 
-import Manifest.Job.Task;
 import VERSCommon.AppFatal;
 import VERSCommon.AppError;
 import VERSCommon.HandleElement;
@@ -20,7 +19,6 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -85,11 +83,11 @@ public class Manifest implements XMLConsumer {
      *
      * <pre>
      * 20210326 0.0.1 Provided version and cleaned up headers
-     * 20211117 0.0.2 Fixed to work with JDK 16 etc
+     * 20211117 1.0 Fixed to work with JDK 16 etc
      * </pre>
      */
     static String version() {
-        return ("0.0.2");
+        return ("1.0");
     }
 
     /**
